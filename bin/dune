@@ -1,0 +1,4 @@
+(executable
+ (public_name Coeffect-Sandbox)
+ (name main)
+ (libraries Coeffect_Sandbox))
