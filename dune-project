@@ -18,7 +18,12 @@
  (synopsis "Sample Coeffect Type System")
  (description
   "Coeffects can be used to track what a program requires from its environment, this can help eliminate a variety of bugs.")
- (depends ocaml)
+ (depends
+  (ocaml
+   (>= 5.4))
+  (dune
+   (>= 3.0))
+  (alcotest :with-test))
  (tags
   ("coeffects" "programming-languages")))
 

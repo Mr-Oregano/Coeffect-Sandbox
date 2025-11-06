@@ -1,6 +1,6 @@
 (lang package 0.1)
 
-(dependency_hash 2f727ebc573afc234bec031bc04fd612)
+(dependency_hash 6709853736d7bcadb4c8a5b2d6d3b80c)
 
 (ocaml ocaml-base-compiler)
 
@@ -14,6 +14,7 @@
 
 (expanded_solver_variable_bindings
  (variable_values
+  (with-doc false)
   (with-dev-setup false)
   (sys-ocaml-version 5.4.0)
   (post true)
@@ -22,8 +23,10 @@
   (opam-version 2.2.0~alpha-vendored)
   (arch x86_64))
  (unset_variables
+  with-test
   sys-ocaml-libc
   sys-ocaml-cc
   sys-ocaml-arch
   enable-ocaml-beta-repository
+  dev
   build))
