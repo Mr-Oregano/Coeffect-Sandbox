@@ -1,0 +1,6 @@
+# Ignore everything in the lock directory
+dune.lock/** linguist-detectable=false
+
+# Ignore everything in the supplemental since these
+# will not be real programming languages
+supplemental/** linguist-detectable=false
