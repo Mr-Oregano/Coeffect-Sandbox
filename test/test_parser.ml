@@ -41,6 +41,7 @@ let test_parser_inputs_abstraction =
     (Abs ("x", App (Var "x", Var "x")), "\\x.(x x)");
     (Abs ("x", App (Var "x", Var "x")), "(\\x.x x)");
     (App (Abs ("x", Var "x"), Var "x"), "(\\x.x) x");
+    (Abs ("x", Abs ("y", App (Var "x", Var "y"))), "\\x.\\y.x y");
   ]
 
 let test_parse_ast (expected, inputs) =
