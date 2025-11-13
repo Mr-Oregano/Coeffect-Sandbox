@@ -18,6 +18,7 @@ let token_to_string (t : token) =
   | Variable x -> Printf.sprintf "Var (%s)" x
   | Literal n -> Printf.sprintf "Lit (%d)" n
 
+(* TODO: Rather than immediately raising this, queue this into a list of errors *)
 let rec lex (cs : char Seq.t) =
   once
     (unfold
@@ -43,9 +44,7 @@ and lex_next (cs : char Seq.t) : (token * char Seq.t) option =
       else if is_white c then
         (* Skip this white space, continue to the next *)
         lex_next cs'
-      else
-        (* TODO: Rather than immediately raising this, queue this into a list of errors *)
-        raise (Failure "Unexpected character")
+      else raise (Failure "Unexpected character")
 
 and lex_value (pred : char -> bool) (c : char) (cs : char Seq.t) =
   (* We need to use a mutable buffer to construct a string out of the 

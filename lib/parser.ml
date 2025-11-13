@@ -22,6 +22,8 @@ and exp_to_string (e : exp) =
   | Var v -> v
   | Num n -> Int.to_string n
 
+(* TODO: Implement capture-avoiding substitution *)
+(* TODO: Rather than immediately raising this, queue this into a list of errors, and attempt recovery *)
 let rec parse (ts : token Seq.t) : prog =
   match uncons ts with
   | None -> None
