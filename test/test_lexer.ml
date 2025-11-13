@@ -6,13 +6,13 @@ open Test_core
 
 let test_lex_empty () =
   Alcotest.(check seq_token)
-    (Format.sprintf "Lex correctly produces empty sequence")
-    Seq.empty Seq.empty
+    (Format.sprintf "Lex does not produce empty sequence")
+    empty (lex empty)
 
 let test_lex_fail () =
   Alcotest.check_raises "Did not raise exception"
     (Failure "Unexpected character") (fun () ->
-      iter (fun _ -> ()) (Lexer.lex (singleton '$')))
+      iter (fun _ -> ()) (lex (singleton '$')))
 
 let test_lex_inputs_single =
   [
@@ -79,7 +79,7 @@ let test_lex_toks (expected, inputs) =
   let tester () =
     Alcotest.(check seq_token)
       (Format.sprintf "Did not produce expected for '%s'" inputs_str)
-      expected_seq (Lexer.lex inputs_seq)
+      expected_seq (lex inputs_seq)
   in
   let name =
     Format.sprintf "Lexer generates valid tokens for '%s'" inputs_str

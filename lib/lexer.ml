@@ -9,6 +9,15 @@ type token =
   | Variable of string
   | Literal of int
 
+let token_to_string (t : token) =
+  match t with
+  | LParen -> "("
+  | RParen -> ")"
+  | Slash -> "\\"
+  | Period -> "."
+  | Variable x -> Printf.sprintf "Var (%s)" x
+  | Literal n -> Printf.sprintf "Lit (%d)" n
+
 let rec lex (cs : char Seq.t) =
   once
     (unfold

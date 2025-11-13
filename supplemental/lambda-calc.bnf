@@ -1,0 +1,17 @@
+# Using extended BNF notation
+# The following is the CFG for the lambda calculus
+
+<prog> ::= <expr>? .
+
+<expr> ::= '\\' <abs> 
+         | <app> .
+
+<abs> ::= var '.' <expr> .
+
+<app> ::= <simple> <app_tail>
+
+<app_tail> ::= <simple> <app_tail> | .
+
+<simple> :: var 
+          | num
+          | "(" <expr> ")" .
