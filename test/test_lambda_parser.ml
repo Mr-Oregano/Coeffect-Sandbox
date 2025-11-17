@@ -2,7 +2,8 @@ open List
 open Seq
 open Coeffect_Sandbox
 open Lexer
-open Parser
+open Lambda.Parser
+open Lambda.Types
 open Test_core
 
 let test_parse_empty () =

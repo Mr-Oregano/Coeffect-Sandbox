@@ -1,15 +1,7 @@
 open Seq
+open Token
 open Lexer
-
-type var = string
-
-and exp =
-  | Abs of (var * exp)
-  | App of (exp * exp)
-  | Var of var
-  | Num of int
-
-and prog = exp option
+open Types
 
 let rec prog_to_string (p : prog) =
   match p with None -> String.empty | Some e -> exp_to_string e

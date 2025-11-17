@@ -2,6 +2,7 @@ open List
 open Seq
 open Coeffect_Sandbox
 open Lexer
+open Token
 open Test_core
 
 (* TODO: Fix on fail printer! Currently it just throws exception *)

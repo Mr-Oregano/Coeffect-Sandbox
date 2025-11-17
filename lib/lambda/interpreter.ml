@@ -1,12 +1,6 @@
-open Parser
-
 (* Very very simple tree-walk lambda calculus interpreter *)
-type value =
-  | Num of int
-  | Clo of (var * exp * ctx)
-
-and ctx = (var * value) list
-and res = value option
+open Parser
+open Types
 
 let rec res_to_string (r : res) =
   match r with None -> "<NO-OP>" | Some v -> value_to_string v
