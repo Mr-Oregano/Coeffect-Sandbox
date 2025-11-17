@@ -1,0 +1,36 @@
+# Using extended BNF notation
+# The following is the CFG for the implicit parameters coeffect system
+
+<prog> ::= <decl>* ';' <expr> .
+
+# Declarations
+<decl> ::= <fun_decl>
+         | <val_decl> .
+
+<fun_decl> ::= 'fun' id <param>+ ':' <type> '=' <expr> .
+<param> ::= '(' id ':' <type> ')' .
+
+<val_decl> ::= 'val' id '=' <expr> .
+
+# Types
+<type> ::= <base_type> | <base_type> '->' <type> .
+
+<base_type> ::= 'int' 
+              | 'unit' 
+              | '(' <type> ')'.
+
+# Expressions  
+<expr> ::= <letdyn> 
+         | <add> .
+
+<letdyn> ::= 'letdyn' imp_id '=' <expr> 'in' <expr> .
+
+<add> ::= <app> ( '+' <app> )* .
+
+<app> ::= <simple>+
+
+<simple> :: id 
+          | int
+          | imp_id
+          | unit
+          | "(" <expr> ")" .

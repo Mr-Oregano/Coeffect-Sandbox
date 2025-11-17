@@ -72,6 +72,21 @@ let test_lex_inputs_in_channel =
       "(\\x. x) 69420" );
   ]
 
+let test_lex_inputs_implicit_parameters =
+  [
+    ([ Colon ], ":");
+    ([ Semicolon ], ";");
+    ([ Arrow ], "->");
+    ([ Equals ], "=");
+    ([ Plus ], "+");
+    ([ KW_Fun ], "fun");
+    ([ KW_Int ], "int");
+    ([ KW_Unit ], "unit");
+    ([ KW_Letdyn ], "letdyn");
+    ([ KW_In ], "in");
+    ([ Implicit "?x" ], "?x");
+  ]
+
 let test_lex_toks (expected, inputs) =
   let inputs_str = String.escaped inputs in
   let inputs_seq = once (String.to_seq inputs) in
@@ -94,3 +109,4 @@ let suite =
   @ List.map test_lex_toks test_lex_inputs_spaces
   @ List.map test_lex_toks test_lex_inputs_vars_and_literals
   @ List.map test_lex_toks test_lex_inputs_complete
+  @ List.map test_lex_toks test_lex_inputs_implicit_parameters

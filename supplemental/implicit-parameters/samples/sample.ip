@@ -1,0 +1,6 @@
+
+fun foo (y: int): (?int) -> int = ?x + y
+
+;
+
+letdyn ?x = 6 in foo 9

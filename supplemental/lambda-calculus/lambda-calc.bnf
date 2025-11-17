@@ -8,7 +8,7 @@
 
 <abs> ::= var '.' <expr> .
 
-<app> ::= <simple> <app_tail>
+<app> ::= <simple> <app_tail> .
 
 <app_tail> ::= <simple> <app_tail> | .
 

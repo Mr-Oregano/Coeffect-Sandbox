@@ -6,6 +6,18 @@ type token =
   | RParen
   | Slash
   | Period
+  | Colon
+  | Semicolon
+  | Arrow
+  | Equals
+  | Plus
+  | KW_Fun
+  | KW_Val
+  | KW_Int
+  | KW_Unit
+  | KW_Letdyn
+  | KW_In
+  | Implicit of string
   | Variable of string
   | Literal of int
 
@@ -15,6 +27,18 @@ let token_to_string (t : token) =
   | RParen -> ")"
   | Slash -> "\\"
   | Period -> "."
+  | Colon -> ":"
+  | Semicolon -> ";"
+  | Arrow -> "->"
+  | Equals -> "="
+  | Plus -> "+"
+  | KW_Fun -> "fun"
+  | KW_Val -> "val"
+  | KW_Int -> "int"
+  | KW_Unit -> "unit"
+  | KW_Letdyn -> "letdyn"
+  | KW_In -> "in"
+  | Implicit x -> Printf.sprintf "ImpVar (%s)" x
   | Variable x -> Printf.sprintf "Var (%s)" x
   | Literal n -> Printf.sprintf "Lit (%d)" n
 
@@ -34,13 +58,22 @@ and lex_next (cs : char Seq.t) : (token * char Seq.t) option =
   | Some (')', cs') -> Some (RParen, cs')
   | Some ('\\', cs') -> Some (Slash, cs')
   | Some ('.', cs') -> Some (Period, cs')
+  | Some (':', cs') -> Some (Colon, cs')
+  | Some (';', cs') -> Some (Semicolon, cs')
+  | Some ('=', cs') -> Some (Equals, cs')
+  | Some ('+', cs') -> Some (Plus, cs')
+  | Some ('?', cs') -> Some (lex_imp_id cs')
+  | Some ('-', cs') -> (
+      match uncons cs' with
+      | Some ('>', cs'') -> Some (Arrow, cs'')
+      | _ -> raise (Failure "Unexpected character"))
   | Some (c, cs') ->
       if is_digit c then
         (* Consume all digit characters *)
-        Some (lex_digit c cs')
+        Some (lex_literal c cs')
       else if is_letter c then
         (* Consume all alpha or digit characters *)
-        Some (lex_alpha c cs')
+        Some (lex_id_or_keyword c cs')
       else if is_white c then
         (* Skip this white space, continue to the next *)
         lex_next cs'
@@ -70,10 +103,25 @@ and lex_value (pred : char -> bool) (c : char) (cs : char Seq.t) =
   let cs' = _aux_pred cs in
   (Buffer.contents buf, cs')
 
-and lex_digit (c : char) (cs : char Seq.t) =
+and lex_literal (c : char) (cs : char Seq.t) =
   let value, seq = lex_value is_digit c cs in
   (Literal (int_of_string value), seq)
 
-and lex_alpha (c : char) (in_ : char Seq.t) =
-  let value, seq = lex_value is_alphanum c in_ in
+and lex_id (c : char) (cs : char Seq.t) =
+  let value, seq = lex_value is_alphanum c cs in
   (Variable value, seq)
+
+and lex_imp_id (cs : char Seq.t) =
+  let value, seq = lex_value is_alphanum '?' cs in
+  (Implicit value, seq)
+
+and lex_id_or_keyword (c : char) (cs : char Seq.t) =
+  let value, seq = lex_id c cs in
+  match value with
+  | Variable "fun" -> (KW_Fun, seq)
+  | Variable "val" -> (KW_Val, seq)
+  | Variable "int" -> (KW_Int, seq)
+  | Variable "unit" -> (KW_Unit, seq)
+  | Variable "letdyn" -> (KW_Letdyn, seq)
+  | Variable "in" -> (KW_In, seq)
+  | _ -> (value, seq)
