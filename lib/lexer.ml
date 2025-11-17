@@ -23,7 +23,7 @@ let token_to_string (t : token) =
   | Variable x -> Printf.sprintf "Var (%s)" x
   | Literal n -> Printf.sprintf "Lit (%d)" n
 
-(* TODO: Rather than immediately raising this, queue this into a list of errors *)
+(* TODO: Rather than immediately raising errors, queue them into a list *)
 let rec lex (cs : char Seq.t) =
   once
     (unfold
