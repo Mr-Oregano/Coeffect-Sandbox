@@ -4,6 +4,9 @@ open Coeffect_Sandbox
 open Lexer
 open Test_core
 
+(* TODO: Fix on fail printer! Currently it just throws exception *)
+(* TODO: Parameterize the fail check, check for more failures *)
+
 let test_lex_empty () =
   Alcotest.(check seq_token)
     (Format.sprintf "Lex does not produce empty sequence")
