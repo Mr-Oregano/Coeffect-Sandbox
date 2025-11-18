@@ -23,7 +23,7 @@ let token_to_string (t : token) =
   | T_ImpVar x -> Printf.sprintf "ImpVar (%s)" x
   | T_Var x -> Printf.sprintf "Var (%s)" x
   | T_Num n -> Printf.sprintf "Lit (%d)" n
-  | T_UnitVal -> "#"
+  | T_UnitVal -> "()"
 
 (* TODO: Rather than immediately raising errors, queue them into a list *)
 let rec lex (cs : char Seq.t) =
@@ -37,7 +37,11 @@ let rec lex (cs : char Seq.t) =
 and lex_next (cs : char Seq.t) : (token * char Seq.t) option =
   match uncons cs with
   | None -> None
-  | Some ('(', cs') -> Some (T_LParen, cs')
+  | Some ('(', cs') -> (
+      match uncons cs' with
+      | Some (')', cs'') -> Some (T_UnitVal, cs'')
+      | Some (c, cs'') -> Some (T_LParen, append (singleton c) cs'')
+      | None -> Some (T_LParen, empty))
   | Some (')', cs') -> Some (T_RParen, cs')
   | Some ('\\', cs') -> Some (T_Slash, cs')
   | Some ('.', cs') -> Some (T_Period, cs')
@@ -45,7 +49,11 @@ and lex_next (cs : char Seq.t) : (token * char Seq.t) option =
   | Some (';', cs') -> Some (T_Semicolon, cs')
   | Some ('=', cs') -> Some (T_Equals, cs')
   | Some ('+', cs') -> Some (T_Plus, cs')
-  | Some ('#', cs') -> Some (T_UnitVal, cs')
+  | Some ('#', cs') ->
+      (* This is a comment, no tokens to generate, skip to the next line *)
+      let is_not_newline = fun c -> c <> '\n' in
+      let cs'' = Seq.drop_while is_not_newline cs' in
+      lex_next cs''
   | Some ('!', cs') -> Some (T_Exclamation, cs')
   | Some ('?', cs') -> Some (lex_imp_id cs')
   | Some ('-', cs') -> (

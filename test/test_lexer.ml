@@ -30,7 +30,6 @@ let test_lex_inputs_single =
 
 let test_lex_inputs_standard =
   [
-    ([ T_LParen; T_RParen ], "()");
     ([ T_LParen; T_LParen ], "((");
     ([ T_RParen; T_RParen ], "))");
     ([ T_LParen; T_Period; T_RParen ], "(.)");
@@ -88,9 +87,10 @@ let test_lex_inputs_implicit_parameters =
     ([ T_UnitTyp ], "unit");
     ([ T_LetDyn ], "letdyn");
     ([ T_In ], "in");
-    ([ T_UnitVal ], "#");
+    ([ T_UnitVal ], "()");
     ([ T_Exclamation ], "!");
     ([ T_ImpVar "?x" ], "?x");
+    ([ T_Var "x" ], "# This is a comment\nx");
   ]
 
 let test_lex_toks (expected, inputs) =
