@@ -7,7 +7,7 @@ open Lambda.Types
 open Test_core
 
 let test_parse_empty () =
-  Alcotest.(check prog)
+  Alcotest.(check lambda_prog)
     (Format.sprintf "Parser does not produce empty AST")
     None (parse Seq.empty)
 
@@ -55,7 +55,7 @@ let test_parse_ast (expected, inputs) =
   let chars_seq = once (String.to_seq inputs) in
   let tokens_seq = lex chars_seq in
   let tester () =
-    Alcotest.(check prog)
+    Alcotest.(check lambda_prog)
       (Format.sprintf "Did not produce expected for '%s'" inputs_str)
       (Some expected) (parse tokens_seq)
   in

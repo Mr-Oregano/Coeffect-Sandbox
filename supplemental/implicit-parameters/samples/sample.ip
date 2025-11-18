@@ -1,5 +1,6 @@
 
-fun foo (y: int): (?int) -> int = ?x + y
+# Typed as !int -> int -> int
+fun foo (y: int): int = ?x + y
 
 ;
 

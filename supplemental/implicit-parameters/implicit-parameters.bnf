@@ -17,6 +17,7 @@
 
 <base_type> ::= 'int' 
               | 'unit' 
+              | '!' <type>
               | '(' <type> ')'.
 
 # Expressions  
