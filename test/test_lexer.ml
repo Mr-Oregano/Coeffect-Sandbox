@@ -20,50 +20,50 @@ let test_lex_fail () =
 
 let test_lex_inputs_single =
   [
-    ([ LParen ], "(");
-    ([ RParen ], ")");
-    ([ Slash ], "\\");
-    ([ Period ], ".");
-    ([ Variable "x" ], "x");
-    ([ Literal 6 ], "6");
+    ([ T_LParen ], "(");
+    ([ T_RParen ], ")");
+    ([ T_Slash ], "\\");
+    ([ T_Period ], ".");
+    ([ T_Var "x" ], "x");
+    ([ T_Num 6 ], "6");
   ]
 
 let test_lex_inputs_standard =
   [
-    ([ LParen; RParen ], "()");
-    ([ LParen; LParen ], "((");
-    ([ RParen; RParen ], "))");
-    ([ LParen; Period; RParen ], "(.)");
-    ([ LParen; Slash; RParen ], "(\\)");
-    ([ LParen; Slash; Period; RParen ], "(\\.)");
+    ([ T_LParen; T_RParen ], "()");
+    ([ T_LParen; T_LParen ], "((");
+    ([ T_RParen; T_RParen ], "))");
+    ([ T_LParen; T_Period; T_RParen ], "(.)");
+    ([ T_LParen; T_Slash; T_RParen ], "(\\)");
+    ([ T_LParen; T_Slash; T_Period; T_RParen ], "(\\.)");
   ]
 
 let test_lex_inputs_spaces =
   [
-    ([ LParen; RParen ], " ( \t )\n ");
-    ([ LParen; LParen ], "(  (\n \t");
-    ([ RParen; RParen ], "  \t)\n )");
-    ([ LParen; Period; RParen ], "\t( . )");
-    ([ LParen; Slash; RParen ], "  ( \\\t)\n");
-    ([ LParen; Slash; Period; RParen ], "\n\n(   \\\t.)");
+    ([ T_LParen; T_RParen ], " ( \t )\n ");
+    ([ T_LParen; T_LParen ], "(  (\n \t");
+    ([ T_RParen; T_RParen ], "  \t)\n )");
+    ([ T_LParen; T_Period; T_RParen ], "\t( . )");
+    ([ T_LParen; T_Slash; T_RParen ], "  ( \\\t)\n");
+    ([ T_LParen; T_Slash; T_Period; T_RParen ], "\n\n(   \\\t.)");
   ]
 
 let test_lex_inputs_vars_and_literals =
   [
-    ([ Literal 123 ], "123");
-    ([ Literal 123456 ], "123456");
-    ([ Literal 123; Literal 456 ], "123 456");
-    ([ Literal 123; Period; Literal 456 ], "123.456");
-    ([ Variable "abc123" ], "abc123");
-    ([ Variable "a"; Variable "bc123" ], "a bc123");
-    ([ Variable "abc"; Literal 123 ], " \nabc\n123");
+    ([ T_Num 123 ], "123");
+    ([ T_Num 123456 ], "123456");
+    ([ T_Num 123; T_Num 456 ], "123 456");
+    ([ T_Num 123; T_Period; T_Num 456 ], "123.456");
+    ([ T_Var "abc123" ], "abc123");
+    ([ T_Var "a"; T_Var "bc123" ], "a bc123");
+    ([ T_Var "abc"; T_Num 123 ], " \nabc\n123");
   ]
 
 let test_lex_inputs_complete =
   [
-    ([ Slash; Variable "x"; Period; Variable "x" ], "\\x.x");
+    ([ T_Slash; T_Var "x"; T_Period; T_Var "x" ], "\\x.x");
     ( [
-        LParen; Slash; Variable "x"; Period; Variable "x"; RParen; Literal 69420;
+        T_LParen; T_Slash; T_Var "x"; T_Period; T_Var "x"; T_RParen; T_Num 69420;
       ],
       "(\\x. x) 69420" );
   ]
@@ -71,24 +71,26 @@ let test_lex_inputs_complete =
 let test_lex_inputs_in_channel =
   [
     ( [
-        LParen; Slash; Variable "x"; Period; Variable "x"; RParen; Literal 69420;
+        T_LParen; T_Slash; T_Var "x"; T_Period; T_Var "x"; T_RParen; T_Num 69420;
       ],
       "(\\x. x) 69420" );
   ]
 
 let test_lex_inputs_implicit_parameters =
   [
-    ([ Colon ], ":");
-    ([ Semicolon ], ";");
-    ([ Arrow ], "->");
-    ([ Equals ], "=");
-    ([ Plus ], "+");
-    ([ KW_Fun ], "fun");
-    ([ KW_Int ], "int");
-    ([ KW_Unit ], "unit");
-    ([ KW_Letdyn ], "letdyn");
-    ([ KW_In ], "in");
-    ([ Implicit "?x" ], "?x");
+    ([ T_Colon ], ":");
+    ([ T_Semicolon ], ";");
+    ([ T_Arrow ], "->");
+    ([ T_Equals ], "=");
+    ([ T_Plus ], "+");
+    ([ T_Fun ], "fun");
+    ([ T_IntTyp ], "int");
+    ([ T_UnitTyp ], "unit");
+    ([ T_LetDyn ], "letdyn");
+    ([ T_In ], "in");
+    ([ T_UnitVal ], "#");
+    ([ T_Exclamation ], "!");
+    ([ T_ImpVar "?x" ], "?x");
   ]
 
 let test_lex_toks (expected, inputs) =

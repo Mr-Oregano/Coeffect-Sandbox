@@ -4,24 +4,26 @@ open Token
 
 let token_to_string (t : token) =
   match t with
-  | LParen -> "("
-  | RParen -> ")"
-  | Slash -> "\\"
-  | Period -> "."
-  | Colon -> ":"
-  | Semicolon -> ";"
-  | Arrow -> "->"
-  | Equals -> "="
-  | Plus -> "+"
-  | KW_Fun -> "fun"
-  | KW_Val -> "val"
-  | KW_Int -> "int"
-  | KW_Unit -> "unit"
-  | KW_Letdyn -> "letdyn"
-  | KW_In -> "in"
-  | Implicit x -> Printf.sprintf "ImpVar (%s)" x
-  | Variable x -> Printf.sprintf "Var (%s)" x
-  | Literal n -> Printf.sprintf "Lit (%d)" n
+  | T_LParen -> "("
+  | T_RParen -> ")"
+  | T_Slash -> "\\"
+  | T_Period -> "."
+  | T_Colon -> ":"
+  | T_Semicolon -> ";"
+  | T_Arrow -> "->"
+  | T_Equals -> "="
+  | T_Plus -> "+"
+  | T_Exclamation -> "!"
+  | T_Fun -> "fun"
+  | T_Val -> "val"
+  | T_IntTyp -> "int"
+  | T_UnitTyp -> "unit"
+  | T_LetDyn -> "letdyn"
+  | T_In -> "in"
+  | T_ImpVar x -> Printf.sprintf "ImpVar (%s)" x
+  | T_Var x -> Printf.sprintf "Var (%s)" x
+  | T_Num n -> Printf.sprintf "Lit (%d)" n
+  | T_UnitVal -> "#"
 
 (* TODO: Rather than immediately raising errors, queue them into a list *)
 let rec lex (cs : char Seq.t) =
@@ -35,18 +37,20 @@ let rec lex (cs : char Seq.t) =
 and lex_next (cs : char Seq.t) : (token * char Seq.t) option =
   match uncons cs with
   | None -> None
-  | Some ('(', cs') -> Some (LParen, cs')
-  | Some (')', cs') -> Some (RParen, cs')
-  | Some ('\\', cs') -> Some (Slash, cs')
-  | Some ('.', cs') -> Some (Period, cs')
-  | Some (':', cs') -> Some (Colon, cs')
-  | Some (';', cs') -> Some (Semicolon, cs')
-  | Some ('=', cs') -> Some (Equals, cs')
-  | Some ('+', cs') -> Some (Plus, cs')
+  | Some ('(', cs') -> Some (T_LParen, cs')
+  | Some (')', cs') -> Some (T_RParen, cs')
+  | Some ('\\', cs') -> Some (T_Slash, cs')
+  | Some ('.', cs') -> Some (T_Period, cs')
+  | Some (':', cs') -> Some (T_Colon, cs')
+  | Some (';', cs') -> Some (T_Semicolon, cs')
+  | Some ('=', cs') -> Some (T_Equals, cs')
+  | Some ('+', cs') -> Some (T_Plus, cs')
+  | Some ('#', cs') -> Some (T_UnitVal, cs')
+  | Some ('!', cs') -> Some (T_Exclamation, cs')
   | Some ('?', cs') -> Some (lex_imp_id cs')
   | Some ('-', cs') -> (
       match uncons cs' with
-      | Some ('>', cs'') -> Some (Arrow, cs'')
+      | Some ('>', cs'') -> Some (T_Arrow, cs'')
       | _ -> raise (Failure "Unexpected character"))
   | Some (c, cs') ->
       if is_digit c then
@@ -86,23 +90,23 @@ and lex_value (pred : char -> bool) (c : char) (cs : char Seq.t) =
 
 and lex_literal (c : char) (cs : char Seq.t) =
   let value, seq = lex_value is_digit c cs in
-  (Literal (int_of_string value), seq)
+  (T_Num (int_of_string value), seq)
 
 and lex_id (c : char) (cs : char Seq.t) =
   let value, seq = lex_value is_alphanum c cs in
-  (Variable value, seq)
+  (T_Var value, seq)
 
 and lex_imp_id (cs : char Seq.t) =
   let value, seq = lex_value is_alphanum '?' cs in
-  (Implicit value, seq)
+  (T_ImpVar value, seq)
 
 and lex_id_or_keyword (c : char) (cs : char Seq.t) =
   let value, seq = lex_id c cs in
   match value with
-  | Variable "fun" -> (KW_Fun, seq)
-  | Variable "val" -> (KW_Val, seq)
-  | Variable "int" -> (KW_Int, seq)
-  | Variable "unit" -> (KW_Unit, seq)
-  | Variable "letdyn" -> (KW_Letdyn, seq)
-  | Variable "in" -> (KW_In, seq)
+  | T_Var "fun" -> (T_Fun, seq)
+  | T_Var "val" -> (T_Val, seq)
+  | T_Var "int" -> (T_IntTyp, seq)
+  | T_Var "unit" -> (T_UnitTyp, seq)
+  | T_Var "letdyn" -> (T_LetDyn, seq)
+  | T_Var "in" -> (T_In, seq)
   | _ -> (value, seq)

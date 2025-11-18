@@ -27,14 +27,14 @@ let rec parse (ts : token Seq.t) : prog =
 
 and parse_exp (ts : token Seq.t) =
   match uncons ts with
-  | Some (Slash, ts') -> parse_abs ts'
+  | Some (T_Slash, ts') -> parse_abs ts'
   | Some (t, ts') -> parse_app (append (singleton t) ts')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
 
 and parse_abs (ts : token Seq.t) =
   let param, ts' = parse_var ts in
   match uncons ts' with
-  | Some (Period, ts'') ->
+  | Some (T_Period, ts'') ->
       let body, ts''' = parse_exp ts'' in
       (Abs (param, body), ts''')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
@@ -57,11 +57,11 @@ and parse_app_tail (curr : exp) (ts : token Seq.t) =
 
 and parse_simple_opt (ts : token Seq.t) : exp option * token Seq.t =
   match uncons ts with
-  | Some (Literal n, ts') -> (Some (Num n), ts')
-  | Some (Variable v, ts') -> (Some (Var v), ts')
-  | Some (LParen, ts') ->
+  | Some (T_Num n, ts') -> (Some (Num n), ts')
+  | Some (T_Var v, ts') -> (Some (Var v), ts')
+  | Some (T_LParen, ts') ->
       let exp, ts'' = parse_exp ts' in
-      (Some exp, consume RParen ts'')
+      (Some exp, consume T_RParen ts'')
   | Some (t, ts') -> (None, append (singleton t) ts')
   | None -> (None, empty)
 
@@ -73,7 +73,7 @@ and parse_simple (ts : token Seq.t) =
 
 and parse_var (ts : token Seq.t) =
   match uncons ts with
-  | Some (Variable v, ts') -> (v, ts')
+  | Some (T_Var v, ts') -> (v, ts')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
   | _ -> raise (Failure "Invalid Syntax. Expected a named binding")
 
