@@ -10,6 +10,7 @@ let interpret (in_ : in_channel) =
 (* TODO: Implement sys-arg-based cmdline interpreter *)
 let () =
   let result =
-    In_channel.with_open_text "supplemental/samples/lex.lc" interpret
+    In_channel.with_open_text "supplemental/lambda-calculus/samples/sample.lc"
+      interpret
   in
   print_endline (Lambda.Interpreter.res_to_string result)
