@@ -7,8 +7,8 @@ let rec res_to_string (r : res) =
 
 and value_to_string (v : value) =
   match v with
-  | Num n -> Int.to_string n
-  | Clo (v, e, c) ->
+  | I_Num n -> Int.to_string n
+  | I_Clo (v, e, c) ->
       Printf.sprintf "(%s) |- \\%s. %s" (ctx_to_string c) v (exp_to_string e)
 
 and ctx_to_string (c : ctx) =
@@ -23,14 +23,14 @@ let rec eval (p : prog) : res =
 
 and eval_expr (e : exp) (ctx : ctx) =
   match e with
-  | Num v -> Num v
-  | Var v ->
+  | E_Num v -> I_Num v
+  | E_Var v ->
       let _, vl = List.find (fun (vr, _) -> vr = v) ctx in
       vl
-  | Abs (var, f_exp) -> Clo (var, f_exp, ctx)
-  | App (f_exp, arg_exp) -> (
+  | E_Abs (var, f_exp) -> I_Clo (var, f_exp, ctx)
+  | E_App (f_exp, arg_exp) -> (
       let f = eval_expr f_exp ctx in
       let arg = eval_expr arg_exp ctx in
       match f with
-      | Clo (vr, body, env) -> eval_expr body ((vr, arg) :: env)
+      | I_Clo (vr, body, env) -> eval_expr body ((vr, arg) :: env)
       | _ -> raise (Failure "Runtime Error. Cannot apply to non function-type"))

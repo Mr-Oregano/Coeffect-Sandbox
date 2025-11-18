@@ -8,11 +8,11 @@ let rec prog_to_string (p : prog) =
 
 and exp_to_string (e : exp) =
   match e with
-  | Abs (v, body) -> Printf.sprintf "Abs (%s) -> (%s)" v (exp_to_string body)
-  | App (abs, arg) ->
+  | E_Abs (v, body) -> Printf.sprintf "Abs (%s) -> (%s)" v (exp_to_string body)
+  | E_App (abs, arg) ->
       Printf.sprintf "App (%s) (%s)" (exp_to_string abs) (exp_to_string arg)
-  | Var v -> v
-  | Num n -> Int.to_string n
+  | E_Var v -> v
+  | E_Num n -> Int.to_string n
 
 (* TODO: Implement capture-avoiding substitution *)
 (* TODO: Rather than immediately raising this, queue this into a list of errors, and attempt recovery *)
@@ -36,7 +36,7 @@ and parse_abs (ts : token Seq.t) =
   match uncons ts' with
   | Some (T_Period, ts'') ->
       let body, ts''' = parse_exp ts'' in
-      (Abs (param, body), ts''')
+      (E_Abs (param, body), ts''')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
   | _ -> raise (Failure "Invalid Syntax. Expected '.'")
 
@@ -51,14 +51,14 @@ and parse_app_tail (curr : exp) (ts : token Seq.t) =
   let smp, ts' = parse_simple_opt ts in
   match smp with
   | Some arg ->
-      let new_curr = App (curr, arg) in
+      let new_curr = E_App (curr, arg) in
       parse_app_tail new_curr ts'
   | None -> (curr, ts')
 
 and parse_simple_opt (ts : token Seq.t) : exp option * token Seq.t =
   match uncons ts with
-  | Some (T_Num n, ts') -> (Some (Num n), ts')
-  | Some (T_Var v, ts') -> (Some (Var v), ts')
+  | Some (T_Num n, ts') -> (Some (E_Num n), ts')
+  | Some (T_Var v, ts') -> (Some (E_Var v), ts')
   | Some (T_LParen, ts') ->
       let exp, ts'' = parse_exp ts' in
       (Some exp, consume T_RParen ts'')

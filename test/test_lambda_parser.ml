@@ -13,36 +13,41 @@ let test_parse_empty () =
 
 let test_parser_inputs_simple =
   [
-    (Var "x", "x");
-    (Num 9, "9");
-    (Abs ("x", Var "x"), "\\x.x");
-    (App (Var "f", Var "x"), "f x");
+    (E_Var "x", "x");
+    (E_Num 9, "9");
+    (E_Abs ("x", E_Var "x"), "\\x.x");
+    (E_App (E_Var "f", E_Var "x"), "f x");
   ]
 
 let test_parser_inputs_application =
   [
     (* Application is left-associative *)
-    (App (App (Var "f", Var "x"), Var "y"), "f x y");
-    (App (App (Var "f", Var "x"), Var "y"), "(f x) y");
-    (App (App (Var "f", Var "x"), Var "y"), "((f x) y)");
-    (App (App (App (Var "f", Var "x"), Var "y"), Var "z"), "f x y z");
-    (App (App (App (Var "f", Var "x"), Var "y"), Var "z"), "(f x) y z");
-    (App (App (App (Var "f", Var "x"), Var "y"), Var "z"), "((f x) y) z");
-    (App (App (App (Var "f", Var "x"), Var "y"), Var "z"), "(((f x) y) z)");
+    (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), "f x y");
+    (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), "(f x) y");
+    (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), "((f x) y)");
+    ( E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"),
+      "f x y z" );
+    ( E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"),
+      "(f x) y z" );
+    ( E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"),
+      "((f x) y) z" );
+    ( E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"),
+      "(((f x) y) z)" );
     (* Parentheses correctly override associativity *)
-    (App (Var "f", App (Var "x", Var "y")), "f (x y)");
-    (App (App (Var "f", App (Var "x", Var "y")), Var "z"), "f (x y) z");
+    (E_App (E_Var "f", E_App (E_Var "x", E_Var "y")), "f (x y)");
+    ( E_App (E_App (E_Var "f", E_App (E_Var "x", E_Var "y")), E_Var "z"),
+      "f (x y) z" );
   ]
 
 let test_parser_inputs_abstraction =
   [
-    (Abs ("x", Var "x"), "(\\x.x)");
-    (Abs ("x", Var "x"), "\\x.(x)");
-    (Abs ("x", App (Var "x", Var "x")), "\\x.x x");
-    (Abs ("x", App (Var "x", Var "x")), "\\x.(x x)");
-    (Abs ("x", App (Var "x", Var "x")), "(\\x.x x)");
-    (App (Abs ("x", Var "x"), Var "x"), "(\\x.x) x");
-    (Abs ("x", Abs ("y", App (Var "x", Var "y"))), "\\x.\\y.x y");
+    (E_Abs ("x", E_Var "x"), "(\\x.x)");
+    (E_Abs ("x", E_Var "x"), "\\x.(x)");
+    (E_Abs ("x", E_App (E_Var "x", E_Var "x")), "\\x.x x");
+    (E_Abs ("x", E_App (E_Var "x", E_Var "x")), "\\x.(x x)");
+    (E_Abs ("x", E_App (E_Var "x", E_Var "x")), "(\\x.x x)");
+    (E_App (E_Abs ("x", E_Var "x"), E_Var "x"), "(\\x.x) x");
+    (E_Abs ("x", E_Abs ("y", E_App (E_Var "x", E_Var "y"))), "\\x.\\y.x y");
   ]
 
 let test_parse_ast (expected, inputs) =

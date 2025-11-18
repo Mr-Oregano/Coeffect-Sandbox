@@ -2,17 +2,17 @@
 type var = string
 
 and exp =
-  | Abs of (var * exp)
-  | App of (exp * exp)
-  | Var of var
-  | Num of int
+  | E_Abs of (var * exp)
+  | E_App of (exp * exp)
+  | E_Var of var
+  | E_Num of int
 
 and prog = exp option
 
 (* Interpreter Structures *)
 type value =
-  | Num of int
-  | Clo of (var * exp * ctx)
+  | I_Num of int
+  | I_Clo of (var * exp * ctx)
 
 and ctx = (var * value) list
 and res = value option

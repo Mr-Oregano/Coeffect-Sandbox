@@ -19,13 +19,16 @@ let test_interpret_fail () =
       ())
 
 let test_interpret_inputs_simple =
-  [ (Num 69420, "69420"); (Clo ("x", Var "x", []), "\\x.x") ]
+  [ (I_Num 69420, "69420"); (I_Clo ("x", E_Var "x", []), "\\x.x") ]
 
 let test_interpret_inputs_application =
   [
-    (Num 69420, "(\\x.x) 69420");
-    (Num 69420, "(\\x.\\y.x y) (\\z.z) 69420");
-    ( Clo ("y", App (Var "x", Var "y"), [ ("x", Clo ("z", Var "z", [])) ]),
+    (I_Num 69420, "(\\x.x) 69420");
+    (I_Num 69420, "(\\x.\\y.x y) (\\z.z) 69420");
+    ( I_Clo
+        ( "y",
+          E_App (E_Var "x", E_Var "y"),
+          [ ("x", I_Clo ("z", E_Var "z", [])) ] ),
       "(\\x.\\y.x y) (\\z.z)" );
   ]
 
