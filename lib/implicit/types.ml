@@ -18,7 +18,11 @@ and typ =
   | T_Int
   | T_UnitTyp
   | T_ImpTyp of typ
-  | T_Func of typ * typ
+  | T_Func of {
+      from : typ;
+      to_ : typ;
+      latent : (id * typ) list;
+    }
 
 and decl =
   | D_Val of id * exp

@@ -1,8 +1,11 @@
 type token =
   | T_LParen
   | T_RParen
+  | T_LCurly
+  | T_RCurly
   | T_Slash
   | T_Period
+  | T_Comma
   | T_Colon
   | T_Semicolon
   | T_Arrow

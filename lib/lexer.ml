@@ -6,8 +6,11 @@ let token_to_string (t : token) =
   match t with
   | T_LParen -> "("
   | T_RParen -> ")"
+  | T_LCurly -> "{"
+  | T_RCurly -> "}"
   | T_Slash -> "\\"
   | T_Period -> "."
+  | T_Comma -> ","
   | T_Colon -> ":"
   | T_Semicolon -> ";"
   | T_Arrow -> "->"
@@ -43,8 +46,11 @@ and lex_next (cs : char Seq.t) : (token * char Seq.t) option =
       | Some (c, cs'') -> Some (T_LParen, append (singleton c) cs'')
       | None -> Some (T_LParen, empty))
   | Some (')', cs') -> Some (T_RParen, cs')
+  | Some ('{', cs') -> Some (T_LCurly, cs')
+  | Some ('}', cs') -> Some (T_RCurly, cs')
   | Some ('\\', cs') -> Some (T_Slash, cs')
   | Some ('.', cs') -> Some (T_Period, cs')
+  | Some (',', cs') -> Some (T_Comma, cs')
   | Some (':', cs') -> Some (T_Colon, cs')
   | Some (';', cs') -> Some (T_Semicolon, cs')
   | Some ('=', cs') -> Some (T_Equals, cs')

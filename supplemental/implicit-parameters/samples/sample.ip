@@ -1,7 +1,75 @@
 
-# Typed as !int -> int -> int
+# We use "{ ... }" to encode the latent coeffects of function types
+# In the case of implicit parameters, our latent coeffects will be a 
+# comma-separated list of implicit bindings that will be required on application
+
+# "foo" should be typed as: int { ?x: int } -> int
 fun foo (y: int): int = ?x + y
+
+# Consider the case for currying functions:
+#   if the function requires any implicit parameters, the latent
+#   effect will be encoded in the last arrow
+#
+#   we could consider adding a facility for the user to explicitly
+#   indicate at what point the latent coeffect should apply
+#
+# "bar" should be typed as: int -> int { ?x: int } -> int
+#
+fun bar (y: int) (z: int): int = ?x + y + z
+
+# Consider the case for nested functions, this is more or less hte same
+# as the previous case. If we bind an implicit parameter in the outer function
+# then we will force the latent requirement to happen earlier in the type.
+#
+# The question becomes: should the returned function type still require the 
+# latent coeffects?
+#
+# "baz" should be typed as: int { ?x: int } -> int -> int
+#                                           OR?
+#                           int { ?x: int } -> int { ?x: int } -> int
+# 
+# TODO: Currently, there are no lambda functions, should consider adding them
+#
+# fun baz (y: int) = let x = ?x in 
+#    \(z: int) {?x: int} = x * ?x * y * z
+
+# "new1" should be typed as int { ?x: int } -> int 
+# "new2" should be typed as int -> int
+#                               OR?
+#                           int { ?x: int } -> int
+#
+val new1 = bar 420
+val new2 = letdyn ?x = 69 in bar 420
+
+# What if we don't use an implicit binding?
+#
+# "ign1" should be typed as: int -> int { ?x: int } -> int
+# "ign2" should be typed as: int -> int -> int
+#
+# fun ign1 (y: int) (z: int): int = let x = ?x in x + y + z
+# fun ign2 (y: int) (z: int): int = let w = ?x in y + z
+
+# An interesting consideration for the previous could be a map function that expects
+# a mapping function with a latent coeffect providing an index as an implicit parameter
+#
+# However, the user should not be forced to use an implicit parameter in their 
+# mapping function if they do not wish to do so.
+#
+# There should be some facility that allows users to explicitly state the
+# full type of their function to circumvent this
+#
+# fun map (f: int {?idx: int} -> int) (l: int list): int list = 
+#     fun _aux (i: int) (l: int list): int list = 
+#         match l with
+#         | Nil -> Nil
+#         | Cons (x, xs) -> 
+#             let x' = (letdyn ?idx = i in f x) in
+#             Cons (x', _aux (i + 1) xs)
+# 
+#     _aux 0 l            
+#
+# val res = (letdyn ?x = 6 in map (baz 7) [1, 2, 3, 4, 5])
 
 ;
 
-letdyn ?x = 6 in foo 9
+letdyn ?x = 6 in foo 7

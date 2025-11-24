@@ -20,15 +20,24 @@ and typ_to_string (t : typ) =
   | T_Int -> "T_Int"
   | T_UnitTyp -> "T_Unit"
   | T_ImpTyp t' -> Printf.sprintf "T_ImpTyp (%s)" (typ_to_string t')
-  | T_Func (from, to_) ->
-      Printf.sprintf "T_Func (%s -> %s)" (typ_to_string from)
+  | T_Func { from; to_; latent } ->
+      Printf.sprintf "T_Func (%s {%s} -> %s)" (typ_to_string from)
+        (latent_params_to_string latent)
         (typ_to_string to_)
 
+and latent_param_to_string ((id, typ) : id * typ) =
+  Printf.sprintf "%s: %s" id (typ_to_string typ)
+
+and latent_params_to_string (ls : (id * typ) list) =
+  let strings = List.map latent_param_to_string ls in
+  String.concat ", " strings
+
+and param_to_string ((id, typ) : id * typ) =
+  Printf.sprintf "(%s: %s)" id (typ_to_string typ)
+
 and params_to_string (ps : (id * typ) list) =
-  let param_merge acc (id, typ) =
-    Printf.sprintf "%s (%s: %s)" acc id (typ_to_string typ)
-  in
-  List.fold_left param_merge "" ps
+  let strings = List.map param_to_string ps in
+  String.concat " " strings
 
 and exp_to_string (e : exp) =
   match e with
@@ -116,20 +125,48 @@ and parse_param (ts : token Seq.t) =
 
 and parse_type (ts : token Seq.t) =
   let base_typ, ts' = parse_base_type ts in
-  match uncons ts' with
-  | Some (T_Arrow, ts'') ->
-      let ret_typ, ts''' = parse_type ts'' in
-      (T_Func (base_typ, ret_typ), ts''')
-  | Some (t, ts'') -> (base_typ, append (singleton t) ts'')
-  | None -> (base_typ, ts')
+  let latent_opt, ts'' = parse_latent_opt ts' in
+  match uncons ts'' with
+  | Some (T_Arrow, ts''') ->
+      let latent = Option.value latent_opt ~default:[] in
+      let ret_typ, ts'''' = parse_type ts''' in
+      (T_Func { from = base_typ; to_ = ret_typ; latent }, ts'''')
+  | Some (t, ts''') -> (base_typ, append (singleton t) ts''')
+  | None -> (base_typ, ts'')
+
+and parse_latent_opt (ts : token Seq.t) =
+  match uncons ts with
+  | Some (T_LCurly, ts') ->
+      let params, ts'' = parse_latent_params ts' in
+      let ts''' = consume T_RCurly ts'' in
+      (Some params, ts''')
+  | Some (t, ts') -> (None, append (singleton t) ts')
+  | None -> (None, empty)
+
+and parse_latent_params (ts : token Seq.t) =
+  let rec _aux params ts' =
+    match uncons ts' with
+    | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
+    | Some (T_Comma, ts'') ->
+        let param, ts''' = parse_latent_param ts'' in
+        _aux (param :: params) ts'''
+    | Some (t, ts'') -> (params, append (singleton t) ts'')
+  in
+  let first, ts' = parse_latent_param ts in
+  let params, ts' = _aux [ first ] ts' in
+  (* We reverse the list of parameters so they appear in lexical order *)
+  (List.rev params, ts')
+
+and parse_latent_param (ts : token Seq.t) =
+  let id, ts' = parse_imp_id ts in
+  let ts' = consume T_Colon ts' in
+  let typ, ts' = parse_type ts' in
+  ((id, typ), ts')
 
 and parse_base_type (ts : token Seq.t) =
   match uncons ts with
   | Some (T_IntTyp, ts') -> (T_Int, ts')
   | Some (T_UnitTyp, ts') -> (T_UnitTyp, ts')
-  | Some (T_Exclamation, ts') ->
-      let typ, ts'' = parse_type ts' in
-      (T_ImpTyp typ, ts'')
   | Some (T_LParen, ts') ->
       let typ, ts'' = parse_type ts' in
       let ts''' = consume T_RParen ts'' in

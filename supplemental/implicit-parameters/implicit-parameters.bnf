@@ -13,12 +13,13 @@
 <val_decl> ::= 'val' id '=' <expr> .
 
 # Types
-<type> ::= <base_type> | <base_type> '->' <type> .
+<type> ::= <base_type> | <base_type> <latent>? '->' <type> .
+<latent> ::= '{' <latent_param> (',' <latent_param>)* '}' .
+<latent_param> ::= imp_id ':' <type> .
 
 <base_type> ::= 'int' 
               | 'unit' 
-              | '!' <type>
-              | '(' <type> ')'.
+              | '(' <type> ')' .
 
 # Expressions  
 <expr> ::= <letdyn> 

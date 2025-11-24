@@ -91,6 +91,9 @@ let test_lex_inputs_implicit_parameters =
     ([ T_Exclamation ], "!");
     ([ T_ImpVar "?x" ], "?x");
     ([ T_Var "x" ], "# This is a comment\nx");
+    ([ T_LCurly ], "{");
+    ([ T_RCurly ], "}");
+    ([ T_Comma ], ",");
   ]
 
 let test_lex_toks (expected, inputs) =

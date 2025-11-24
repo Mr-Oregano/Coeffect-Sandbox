@@ -81,15 +81,58 @@ let test_parser_inputs_params =
                 [
                   ("a", T_Int);
                   ("b", T_UnitTyp);
-                  ("c", T_ImpTyp T_Int);
-                  ("d", T_Func (T_Int, T_UnitTyp));
+                  ("d", T_Func { from = T_Int; to_ = T_UnitTyp; latent = [] });
                 ];
               ret_typ = T_Int;
               body = E_Var "x";
             };
         ],
         E_App (E_Var "f", E_Num 9) ),
-      "fun f (a: int) (b: unit) (c: !int) (d: int -> unit): int = x ; f 9" );
+      "fun f (a: int) (b: unit) (d: int -> unit): int = x ; f 9" );
+    ( ( [
+          D_Fun
+            {
+              name = "f";
+              params =
+                [
+                  ( "a",
+                    T_Func
+                      { from = T_Int; to_ = T_Int; latent = [ ("?x", T_Int) ] }
+                  );
+                ];
+              ret_typ = T_Int;
+              body = E_Num 69;
+            };
+        ],
+        E_App (E_Var "f", E_Num 9) ),
+      "fun f (a: int { ?x: int }-> int): int = 69 ; f 9" );
+    ( ( [
+          D_Fun
+            {
+              name = "f";
+              params =
+                [
+                  ( "a",
+                    T_Func
+                      {
+                        from = T_Int;
+                        to_ = T_UnitTyp;
+                        latent =
+                          [
+                            ("?x", T_Int);
+                            ( "?y",
+                              T_Func
+                                { from = T_Int; to_ = T_UnitTyp; latent = [] }
+                            );
+                          ];
+                      } );
+                ];
+              ret_typ = T_Int;
+              body = E_Num 69;
+            };
+        ],
+        E_App (E_Var "f", E_Num 9) ),
+      "fun f (a: int { ?x: int, ?y: int -> unit }-> unit): int = 69 ; f 9" );
   ]
 
 let test_parse_ast (expected, inputs) =
