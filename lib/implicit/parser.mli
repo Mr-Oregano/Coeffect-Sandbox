@@ -1,4 +1,4 @@
-open Types
+open Types.Ast
 open Token
 
 val prog_to_string : prog -> string

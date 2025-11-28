@@ -2,9 +2,18 @@
 # We use "{ ... }" to encode the latent coeffects of function types
 # In the case of implicit parameters, our latent coeffects will be a 
 # comma-separated list of implicit bindings that will be required on application
+# 
+# Ideally we would have some form of type inference, but for now, programmers
+# will also explicitly declare implicit parameters optionally after each
+# parameter binding (indicating that the latent coeffects become relevant when
+# applying the parameter in questioN)
 
 # "foo" should be typed as: int { ?x: int } -> int
-fun foo (y: int): int = ?x + y
+# it has an implicit parameter effective when applying the first and only argument
+fun foo (y: int) { ?x: int }: int = ?x + y
+
+# NOTE: The following cases are relevant for type inference. 
+# They do not apply for when the programmer explicitly states the implicit parameters
 
 # Consider the case for currying functions:
 #   if the function requires any implicit parameters, the latent
@@ -15,9 +24,9 @@ fun foo (y: int): int = ?x + y
 #
 # "bar" should be typed as: int -> int { ?x: int } -> int
 #
-fun bar (y: int) (z: int): int = ?x + y + z
+fun bar (y: int) (z: int) { ?x: int }: int = ?x + y + z
 
-# Consider the case for nested functions, this is more or less hte same
+# Consider the case for nested functions, this is more or less the same
 # as the previous case. If we bind an implicit parameter in the outer function
 # then we will force the latent requirement to happen earlier in the type.
 #
@@ -55,8 +64,9 @@ val new2 = letdyn ?x = 69 in bar 420
 # However, the user should not be forced to use an implicit parameter in their 
 # mapping function if they do not wish to do so.
 #
-# There should be some facility that allows users to explicitly state the
-# full type of their function to circumvent this
+# We have sub-typing rules for coeffects that allow us to relax the type system.
+# An expression requiring no implicit parameter is a subtype of an expression 
+# requiring 1 or more implicit parameters.
 #
 # fun map (f: int {?idx: int} -> int) (l: int list): int list = 
 #     fun _aux (i: int) (l: int list): int list = 

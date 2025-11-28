@@ -8,14 +8,17 @@
          | <val_decl> .
 
 <fun_decl> ::= 'fun' id <param>+ ':' <type> '=' <expr> .
-<param> ::= '(' id ':' <type> ')' .
+<param> ::= '(' id ':' <type> ')' <imps>?
 
 <val_decl> ::= 'val' id '=' <expr> .
 
+# Implicit Parameters
+<imps> ::= '{' <imps_inner> '}' .
+<imps_inner> ::= <imp> (',' <imp>)* | . 
+<imp>  ::= imp_id ':' <type> .
+
 # Types
-<type> ::= <base_type> | <base_type> <latent>? '->' <type> .
-<latent> ::= '{' <latent_param> (',' <latent_param>)* '}' .
-<latent_param> ::= imp_id ':' <type> .
+<type> ::= <base_type> | <base_type> <imps>? '->' <type> .
 
 <base_type> ::= 'int' 
               | 'unit' 

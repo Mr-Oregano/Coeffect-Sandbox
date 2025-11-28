@@ -1,6 +1,6 @@
 open Seq
 open Token
-open Types
+open Types.Ast
 
 let rec prog_to_string (p : prog) =
   let decls, exp = p in
@@ -19,23 +19,24 @@ and typ_to_string (t : typ) =
   match t with
   | T_Int -> "T_Int"
   | T_UnitTyp -> "T_Unit"
-  | T_ImpTyp t' -> Printf.sprintf "T_ImpTyp (%s)" (typ_to_string t')
-  | T_Func { from; to_; latent } ->
+  | T_Func { from; to_; imps } ->
       Printf.sprintf "T_Func (%s {%s} -> %s)" (typ_to_string from)
-        (latent_params_to_string latent)
-        (typ_to_string to_)
+        (imps_to_string imps) (typ_to_string to_)
 
-and latent_param_to_string ((id, typ) : id * typ) =
+and imp_to_string ((id, typ) : id * typ) =
   Printf.sprintf "%s: %s" id (typ_to_string typ)
 
-and latent_params_to_string (ls : (id * typ) list) =
-  let strings = List.map latent_param_to_string ls in
+and imps_to_string (ls : (id * typ) list) =
+  let strings = List.map imp_to_string ls in
   String.concat ", " strings
 
-and param_to_string ((id, typ) : id * typ) =
-  Printf.sprintf "(%s: %s)" id (typ_to_string typ)
+and param_to_string (p : param) =
+  let params_str = Printf.sprintf "(%s: %s)" p.name (typ_to_string p.typ) in
+  match p.imps with
+  | [] -> params_str
+  | _ -> Printf.sprintf "%s {%s}" params_str (imps_to_string p.imps)
 
-and params_to_string (ps : (id * typ) list) =
+and params_to_string (ps : param list) =
   let strings = List.map param_to_string ps in
   String.concat " " strings
 
@@ -106,8 +107,8 @@ and parse_params (ts : token Seq.t) =
   let rec _aux params ts' =
     match uncons ts' with
     | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
-    | Some (T_LParen, ts'') ->
-        let param, ts''' = parse_param (append (singleton T_LParen) ts'') in
+    | Some ((T_LParen as t), ts'') ->
+        let param, ts''' = parse_param (append (singleton t) ts'') in
         _aux (param :: params) ts'''
     | Some (t, ts'') -> (params, append (singleton t) ts'')
   in
@@ -116,52 +117,66 @@ and parse_params (ts : token Seq.t) =
   (List.rev params, ts')
 
 and parse_param (ts : token Seq.t) =
-  let ts' = consume T_LParen ts in
-  let id, ts' = parse_id ts' in
-  let ts' = consume T_Colon ts' in
-  let typ, ts' = parse_type ts' in
-  let ts' = consume T_RParen ts' in
-  ((id, typ), ts')
+  match uncons ts with
+  | Some (T_LParen, ts') ->
+      let id, ts' = parse_id ts' in
+      let ts' = consume T_Colon ts' in
+      let typ, ts' = parse_type ts' in
+      let ts' = consume T_RParen ts' in
+      let imps_opt, ts' = parse_imps_opt ts' in
+      let imps = Option.value imps_opt ~default:[] in
+      ({ name = id; typ; imps }, ts')
+  | Some _ -> raise (Failure "Invalid Syntax. Expected parameter binding")
+  | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
 
 and parse_type (ts : token Seq.t) =
   let base_typ, ts' = parse_base_type ts in
-  let latent_opt, ts'' = parse_latent_opt ts' in
+  let imps_opt, ts'' = parse_imps_opt ts' in
   match uncons ts'' with
   | Some (T_Arrow, ts''') ->
-      let latent = Option.value latent_opt ~default:[] in
+      let imps = Option.value imps_opt ~default:[] in
       let ret_typ, ts'''' = parse_type ts''' in
-      (T_Func { from = base_typ; to_ = ret_typ; latent }, ts'''')
+      (T_Func { from = base_typ; to_ = ret_typ; imps }, ts'''')
   | Some (t, ts''') -> (base_typ, append (singleton t) ts''')
   | None -> (base_typ, ts'')
 
-and parse_latent_opt (ts : token Seq.t) =
+and parse_imps_opt (ts : token Seq.t) =
   match uncons ts with
   | Some (T_LCurly, ts') ->
-      let params, ts'' = parse_latent_params ts' in
+      let params, ts'' = parse_imps_inner ts' in
       let ts''' = consume T_RCurly ts'' in
       (Some params, ts''')
   | Some (t, ts') -> (None, append (singleton t) ts')
   | None -> (None, empty)
 
-and parse_latent_params (ts : token Seq.t) =
-  let rec _aux params ts' =
+and parse_imps_inner (ts : token Seq.t) =
+  let rec _aux imps ts' =
     match uncons ts' with
     | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
     | Some (T_Comma, ts'') ->
-        let param, ts''' = parse_latent_param ts'' in
-        _aux (param :: params) ts'''
-    | Some (t, ts'') -> (params, append (singleton t) ts'')
+        let imp, ts''' = parse_imp ts'' in
+        _aux (imp :: imps) ts'''
+    | Some (t, ts'') -> (imps, append (singleton t) ts'')
   in
-  let first, ts' = parse_latent_param ts in
-  let params, ts' = _aux [ first ] ts' in
+  let first_opt, ts' = parse_imp_opt ts in
+  let acc = match first_opt with Some imp -> [ imp ] | _ -> [] in
+  let imps, ts' = _aux acc ts' in
   (* We reverse the list of parameters so they appear in lexical order *)
-  (List.rev params, ts')
+  (List.rev imps, ts')
 
-and parse_latent_param (ts : token Seq.t) =
-  let id, ts' = parse_imp_id ts in
-  let ts' = consume T_Colon ts' in
-  let typ, ts' = parse_type ts' in
-  ((id, typ), ts')
+and parse_imp_opt (ts : token Seq.t) =
+  let id_opt, ts' = parse_imp_id_opt ts in
+  match id_opt with
+  | Some id ->
+      let ts' = consume T_Colon ts' in
+      let typ, ts' = parse_type ts' in
+      (Some (id, typ), ts')
+  | None -> (None, ts')
+
+and parse_imp (ts : token Seq.t) =
+  match parse_imp_opt ts with
+  | Some imp, ts' -> (imp, ts')
+  | _ -> raise (Failure "Invalid Syntax. Expected implicit parameter binding")
 
 and parse_base_type (ts : token Seq.t) =
   match uncons ts with
@@ -238,10 +253,15 @@ and parse_simple (ts : token Seq.t) =
   | Some smp -> (smp, ts')
   | None -> raise (Failure "Invalid Syntax. Expected atomic expression")
 
-and parse_imp_id (ts : token Seq.t) =
+and parse_imp_id_opt (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_ImpVar v, ts') -> (v, ts')
-  | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
+  | Some (T_ImpVar v, ts') -> (Some v, ts')
+  | Some (t, ts') -> (None, append (singleton t) ts')
+  | None -> (None, empty)
+
+and parse_imp_id (ts : token Seq.t) =
+  match parse_imp_id_opt ts with
+  | Some id, ts' -> (id, ts')
   | _ -> raise (Failure "Invalid Syntax. Expected an implicit binding")
 
 and parse_id (ts : token Seq.t) =
