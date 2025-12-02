@@ -11,7 +11,7 @@ let test_parser_inputs_simple =
     (([], E_Var "x"), "; x");
     (([], E_Num 9), "; 9");
     (([], E_ImpVar "?x"), "; ?x");
-    (([], E_UnitVal), "; ()");
+    (([], E_Unit), "; ()");
     (([], E_App (E_Var "f", E_Var "x")), "; f x");
     (([], E_Add (E_Var "x", E_Var "y")), "; x + y");
     (([], E_LetDyn { imp = "?x"; init = E_Num 9; body = E_ImpVar "?x" }), "; letdyn ?x = 9 in ?x");
@@ -68,8 +68,8 @@ let test_parser_inputs_params =
               params =
                 [
                   ("a", T_Int);
-                  ("b", T_UnitTyp);
-                  ("d", T_Func { from = T_Int; to_ = T_UnitTyp; imps = [] });
+                  ("b", T_Unit);
+                  ("d", T_Func { from = T_Int; to_ = T_Unit; imps = [] });
                 ];
               imps = [];
               ret_typ = T_Int;
@@ -100,11 +100,10 @@ let test_parser_inputs_params =
                     T_Func
                       {
                         from = T_Int;
-                        to_ = T_UnitTyp;
+                        to_ = T_Unit;
                         imps =
                           [
-                            ("?x", T_Int);
-                            ("?y", T_Func { from = T_Int; to_ = T_UnitTyp; imps = [] });
+                            ("?x", T_Int); ("?y", T_Func { from = T_Int; to_ = T_Unit; imps = [] });
                           ];
                       } );
                 ];

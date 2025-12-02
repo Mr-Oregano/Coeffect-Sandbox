@@ -47,7 +47,7 @@ and exp_to_string (e : ET.exp) =
         (typ_to_string typ)
   | ET.E_Add (a, b), _ -> Printf.sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
   | ET.E_Var id, typ | ET.E_ImpVar id, typ -> Printf.sprintf "E_Var (%s): %s" id (typ_to_string typ)
-  | ET.E_UnitVal, _ -> "T_Unit"
+  | ET.E_Unit, _ -> "T_Unit"
   | ET.E_Num i, _ -> Printf.sprintf "E_Num (%s)" (Int.to_string i)
   | ET.E_LetDyn { imp; init; body }, typ ->
       Printf.sprintf "E_LetDyn %s = (%s) in (%s): %s" imp (exp_to_string init) (exp_to_string body)
@@ -98,7 +98,7 @@ and type_check_exp (ctx : Context.t) (e : Ast.exp) : ET.exp =
       match get_imp ctx id with
       | Some typ -> (ET.E_ImpVar id, typ)
       | None -> raise (Failure (sprintf "Unbound implicit parameter '%s'" id)))
-  | Ast.E_UnitVal -> (ET.E_UnitVal, ET.T_Unit)
+  | Ast.E_Unit -> (ET.E_Unit, ET.T_Unit)
   | Ast.E_Num i -> (ET.E_Num i, ET.T_Int)
   | Ast.E_LetDyn { imp; init; body } ->
       (* This is the LETDYN rule from the notes *)
@@ -116,7 +116,7 @@ and type_check_exp (ctx : Context.t) (e : Ast.exp) : ET.exp =
 and type_check_typ (ctx : Context.t) (t : Ast.typ) : ET.typ =
   match t with
   | Ast.T_Int -> ET.T_Int
-  | Ast.T_UnitTyp -> ET.T_Unit
+  | Ast.T_Unit -> ET.T_Unit
   | Ast.T_Func { from; to_; imps } ->
       let from' = type_check_typ ctx from in
       let to' = type_check_typ ctx to_ in

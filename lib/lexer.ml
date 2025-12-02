@@ -4,29 +4,29 @@ open Token
 
 let token_to_string (t : token) =
   match t with
-  | T_LParen -> "("
-  | T_RParen -> ")"
-  | T_LCurly -> "{"
-  | T_RCurly -> "}"
-  | T_Slash -> "\\"
-  | T_Period -> "."
-  | T_Comma -> ","
-  | T_Colon -> ":"
-  | T_Semicolon -> ";"
-  | T_Arrow -> "->"
-  | T_Equals -> "="
-  | T_Plus -> "+"
-  | T_Exclamation -> "!"
-  | T_Fun -> "fun"
-  | T_Val -> "val"
-  | T_IntTyp -> "int"
-  | T_UnitTyp -> "unit"
-  | T_LetDyn -> "letdyn"
-  | T_In -> "in"
-  | T_ImpVar x -> Printf.sprintf "ImpVar (%s)" x
-  | T_Var x -> Printf.sprintf "Var (%s)" x
-  | T_Num n -> Printf.sprintf "Lit (%d)" n
-  | T_UnitVal -> "()"
+  | TK_LParen -> "("
+  | TK_RParen -> ")"
+  | TK_LCurly -> "{"
+  | TK_RCurly -> "}"
+  | TK_Slash -> "\\"
+  | TK_Period -> "."
+  | TK_Comma -> ","
+  | TK_Colon -> ":"
+  | TK_Semicolon -> ";"
+  | TK_Arrow -> "->"
+  | TK_Equals -> "="
+  | TK_Plus -> "+"
+  | TK_Exclamation -> "!"
+  | TK_KW_Fun -> "fun"
+  | TK_KW_Val -> "val"
+  | TK_KW_Int -> "int"
+  | TK_KW_Unit -> "unit"
+  | TK_KW_LetDyn -> "letdyn"
+  | TK_KW_In -> "in"
+  | TK_ImpVar x -> Printf.sprintf "ImpVar (%s)" x
+  | TK_Var x -> Printf.sprintf "Var (%s)" x
+  | TK_Num n -> Printf.sprintf "Lit (%d)" n
+  | TK_Unit -> "()"
 
 (* TODO: Rather than immediately raising errors, queue them into a list *)
 let rec lex (cs : char Seq.t) =
@@ -42,29 +42,29 @@ and lex_next (cs : char Seq.t) : (token * char Seq.t) option =
   | None -> None
   | Some ('(', cs') -> (
       match uncons cs' with
-      | Some (')', cs'') -> Some (T_UnitVal, cs'')
-      | Some (c, cs'') -> Some (T_LParen, append (singleton c) cs'')
-      | None -> Some (T_LParen, empty))
-  | Some (')', cs') -> Some (T_RParen, cs')
-  | Some ('{', cs') -> Some (T_LCurly, cs')
-  | Some ('}', cs') -> Some (T_RCurly, cs')
-  | Some ('\\', cs') -> Some (T_Slash, cs')
-  | Some ('.', cs') -> Some (T_Period, cs')
-  | Some (',', cs') -> Some (T_Comma, cs')
-  | Some (':', cs') -> Some (T_Colon, cs')
-  | Some (';', cs') -> Some (T_Semicolon, cs')
-  | Some ('=', cs') -> Some (T_Equals, cs')
-  | Some ('+', cs') -> Some (T_Plus, cs')
+      | Some (')', cs'') -> Some (TK_Unit, cs'')
+      | Some (c, cs'') -> Some (TK_LParen, append (singleton c) cs'')
+      | None -> Some (TK_LParen, empty))
+  | Some (')', cs') -> Some (TK_RParen, cs')
+  | Some ('{', cs') -> Some (TK_LCurly, cs')
+  | Some ('}', cs') -> Some (TK_RCurly, cs')
+  | Some ('\\', cs') -> Some (TK_Slash, cs')
+  | Some ('.', cs') -> Some (TK_Period, cs')
+  | Some (',', cs') -> Some (TK_Comma, cs')
+  | Some (':', cs') -> Some (TK_Colon, cs')
+  | Some (';', cs') -> Some (TK_Semicolon, cs')
+  | Some ('=', cs') -> Some (TK_Equals, cs')
+  | Some ('+', cs') -> Some (TK_Plus, cs')
   | Some ('#', cs') ->
       (* This is a comment, no tokens to generate, skip to the next line *)
       let is_not_newline = fun c -> c <> '\n' in
       let cs'' = Seq.drop_while is_not_newline cs' in
       lex_next cs''
-  | Some ('!', cs') -> Some (T_Exclamation, cs')
+  | Some ('!', cs') -> Some (TK_Exclamation, cs')
   | Some ('?', cs') -> Some (lex_imp_id cs')
   | Some ('-', cs') -> (
       match uncons cs' with
-      | Some ('>', cs'') -> Some (T_Arrow, cs'')
+      | Some ('>', cs'') -> Some (TK_Arrow, cs'')
       | _ -> raise (Failure "Unexpected character"))
   | Some (c, cs') ->
       if is_digit c then
@@ -104,23 +104,23 @@ and lex_value (pred : char -> bool) (c : char) (cs : char Seq.t) =
 
 and lex_literal (c : char) (cs : char Seq.t) =
   let value, seq = lex_value is_digit c cs in
-  (T_Num (int_of_string value), seq)
+  (TK_Num (int_of_string value), seq)
 
 and lex_id (c : char) (cs : char Seq.t) =
   let value, seq = lex_value is_alphanum c cs in
-  (T_Var value, seq)
+  (TK_Var value, seq)
 
 and lex_imp_id (cs : char Seq.t) =
   let value, seq = lex_value is_alphanum '?' cs in
-  (T_ImpVar value, seq)
+  (TK_ImpVar value, seq)
 
 and lex_id_or_keyword (c : char) (cs : char Seq.t) =
   let value, seq = lex_id c cs in
   match value with
-  | T_Var "fun" -> (T_Fun, seq)
-  | T_Var "val" -> (T_Val, seq)
-  | T_Var "int" -> (T_IntTyp, seq)
-  | T_Var "unit" -> (T_UnitTyp, seq)
-  | T_Var "letdyn" -> (T_LetDyn, seq)
-  | T_Var "in" -> (T_In, seq)
+  | TK_Var "fun" -> (TK_KW_Fun, seq)
+  | TK_Var "val" -> (TK_KW_Val, seq)
+  | TK_Var "int" -> (TK_KW_Int, seq)
+  | TK_Var "unit" -> (TK_KW_Unit, seq)
+  | TK_Var "letdyn" -> (TK_KW_LetDyn, seq)
+  | TK_Var "in" -> (TK_KW_In, seq)
   | _ -> (value, seq)

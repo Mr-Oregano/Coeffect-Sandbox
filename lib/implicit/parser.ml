@@ -19,7 +19,7 @@ and decl_to_string (d : decl) =
 and typ_to_string (t : typ) =
   match t with
   | T_Int -> "T_Int"
-  | T_UnitTyp -> "T_Unit"
+  | T_Unit -> "T_Unit"
   | T_Func { from; to_; imps } ->
       let s = Printf.sprintf "%s" (typ_to_string from) in
       let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
@@ -42,7 +42,7 @@ and exp_to_string (e : exp) =
   | E_App (abs, arg) -> Printf.sprintf "E_App (%s) (%s)" (exp_to_string abs) (exp_to_string arg)
   | E_Add (a, b) -> Printf.sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
   | E_Var id | E_ImpVar id -> Printf.sprintf "E_Var (%s)" id
-  | E_UnitVal -> "E_Unit"
+  | E_Unit -> "E_Unit"
   | E_Num i -> Printf.sprintf "E_Num (%s)" (Int.to_string i)
   | E_LetDyn { imp; init; body } ->
       Printf.sprintf "E_LetDyn %s = (%s) in (%s)" imp (exp_to_string init) (exp_to_string body)
@@ -65,7 +65,7 @@ and parse_decls (ts : token Seq.t) =
   let rec _aux decls ts' =
     match uncons ts' with
     | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
-    | Some (T_Semicolon, ts'') -> (decls, ts'')
+    | Some (TK_Semicolon, ts'') -> (decls, ts'')
     | Some (t, ts'') ->
         let decl, ts''' = parse_decl (append (singleton t) ts'') in
         _aux (decl :: decls) ts'''
@@ -76,21 +76,21 @@ and parse_decls (ts : token Seq.t) =
 
 and parse_decl (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_Val, ts') ->
+  | Some (TK_KW_Val, ts') ->
       let id, ts'' = parse_id ts' in
-      let ts'' = consume T_Equals ts'' in
+      let ts'' = consume TK_Equals ts'' in
       let v, ts'' = parse_exp ts'' in
       (D_Val (id, v), ts'')
-  | Some (T_Fun, ts') ->
+  | Some (TK_KW_Fun, ts') ->
       let id, ts'' = parse_id ts' in
       let params, ts'' = parse_params ts'' in
       if List.is_empty params then raise (Failure "Invalid Syntax. Requires at least one parameter")
       else
         let imps_opt, ts'' = parse_imps_opt ts'' in
         let imps = Option.value imps_opt ~default:[] in
-        let ts'' = consume T_Colon ts'' in
+        let ts'' = consume TK_Colon ts'' in
         let typ, ts'' = parse_type ts'' in
-        let ts'' = consume T_Equals ts'' in
+        let ts'' = consume TK_Equals ts'' in
         let body, ts'' = parse_exp ts'' in
         (D_Fun { name = id; params; ret_typ = typ; body; imps }, ts'')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
@@ -100,7 +100,7 @@ and parse_params (ts : token Seq.t) =
   let rec _aux params ts' =
     match uncons ts' with
     | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
-    | Some ((T_LParen as t), ts'') ->
+    | Some ((TK_LParen as t), ts'') ->
         let param, ts''' = parse_param (append (singleton t) ts'') in
         _aux (param :: params) ts'''
     | Some (t, ts'') -> (params, append (singleton t) ts'')
@@ -111,11 +111,11 @@ and parse_params (ts : token Seq.t) =
 
 and parse_param (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_LParen, ts') ->
+  | Some (TK_LParen, ts') ->
       let id, ts' = parse_id ts' in
-      let ts' = consume T_Colon ts' in
+      let ts' = consume TK_Colon ts' in
       let typ, ts' = parse_type ts' in
-      let ts' = consume T_RParen ts' in
+      let ts' = consume TK_RParen ts' in
       ((id, typ), ts')
   | Some _ -> raise (Failure "Invalid Syntax. Expected parameter binding")
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
@@ -124,7 +124,7 @@ and parse_type (ts : token Seq.t) =
   let base_typ, ts' = parse_base_type ts in
   let imps_opt, ts'' = parse_imps_opt ts' in
   match uncons ts'' with
-  | Some (T_Arrow, ts''') ->
+  | Some (TK_Arrow, ts''') ->
       let imps = Option.value imps_opt ~default:[] in
       let ret_typ, ts'''' = parse_type ts''' in
       (T_Func { from = base_typ; to_ = ret_typ; imps }, ts'''')
@@ -133,9 +133,9 @@ and parse_type (ts : token Seq.t) =
 
 and parse_imps_opt (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_LCurly, ts') ->
+  | Some (TK_LCurly, ts') ->
       let params, ts'' = parse_imps_inner ts' in
-      let ts''' = consume T_RCurly ts'' in
+      let ts''' = consume TK_RCurly ts'' in
       (Some params, ts''')
   | Some (t, ts') -> (None, append (singleton t) ts')
   | None -> (None, empty)
@@ -144,7 +144,7 @@ and parse_imps_inner (ts : token Seq.t) =
   let rec _aux imps ts' =
     match uncons ts' with
     | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
-    | Some (T_Comma, ts'') ->
+    | Some (TK_Comma, ts'') ->
         let imp, ts''' = parse_imp ts'' in
         _aux (imp :: imps) ts'''
     | Some (t, ts'') -> (imps, append (singleton t) ts'')
@@ -159,7 +159,7 @@ and parse_imp_opt (ts : token Seq.t) =
   let id_opt, ts' = parse_imp_id_opt ts in
   match id_opt with
   | Some id ->
-      let ts' = consume T_Colon ts' in
+      let ts' = consume TK_Colon ts' in
       let typ, ts' = parse_type ts' in
       (Some (id, typ), ts')
   | None -> (None, ts')
@@ -171,27 +171,27 @@ and parse_imp (ts : token Seq.t) =
 
 and parse_base_type (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_IntTyp, ts') -> (T_Int, ts')
-  | Some (T_UnitTyp, ts') -> (T_UnitTyp, ts')
-  | Some (T_LParen, ts') ->
+  | Some (TK_KW_Int, ts') -> (T_Int, ts')
+  | Some (TK_KW_Unit, ts') -> (T_Unit, ts')
+  | Some (TK_LParen, ts') ->
       let typ, ts'' = parse_type ts' in
-      let ts''' = consume T_RParen ts'' in
+      let ts''' = consume TK_RParen ts'' in
       (typ, ts''')
   | Some _ -> raise (Failure "Invalid Syntax. Expected int, unit or arrow type")
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
 
 and parse_exp (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_LetDyn, ts') -> parse_letdyn (append (singleton T_LetDyn) ts')
+  | Some (TK_KW_LetDyn, ts') -> parse_letdyn (append (singleton TK_KW_LetDyn) ts')
   | Some (t, ts') -> parse_add (append (singleton t) ts')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
 
 and parse_letdyn (ts : token Seq.t) =
-  let ts' = consume T_LetDyn ts in
+  let ts' = consume TK_KW_LetDyn ts in
   let imp_id, ts' = parse_imp_id ts' in
-  let ts' = consume T_Equals ts' in
+  let ts' = consume TK_Equals ts' in
   let init, ts' = parse_exp ts' in
-  let ts' = consume T_In ts' in
+  let ts' = consume TK_KW_In ts' in
   let body, ts' = parse_exp ts' in
   (E_LetDyn { imp = imp_id; init; body }, ts')
 
@@ -204,7 +204,7 @@ and parse_add (ts : token Seq.t) =
 
 and parse_add_tail (curr : exp) (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_Plus, ts') ->
+  | Some (TK_Plus, ts') ->
       let app, ts'' = parse_app ts' in
       let new_curr = E_Add (curr, app) in
       parse_add_tail new_curr ts''
@@ -228,13 +228,13 @@ and parse_app_tail (curr : exp) (ts : token Seq.t) =
 
 and parse_simple_opt (ts : token Seq.t) : exp option * token Seq.t =
   match uncons ts with
-  | Some (T_Num n, ts') -> (Some (E_Num n), ts')
-  | Some (T_Var v, ts') -> (Some (E_Var v), ts')
-  | Some (T_ImpVar v, ts') -> (Some (E_ImpVar v), ts')
-  | Some (T_UnitVal, ts') -> (Some E_UnitVal, ts')
-  | Some (T_LParen, ts') ->
+  | Some (TK_Num n, ts') -> (Some (E_Num n), ts')
+  | Some (TK_Var v, ts') -> (Some (E_Var v), ts')
+  | Some (TK_ImpVar v, ts') -> (Some (E_ImpVar v), ts')
+  | Some (TK_Unit, ts') -> (Some E_Unit, ts')
+  | Some (TK_LParen, ts') ->
       let exp, ts'' = parse_exp ts' in
-      (Some exp, consume T_RParen ts'')
+      (Some exp, consume TK_RParen ts'')
   | Some (t, ts') -> (None, append (singleton t) ts')
   | None -> (None, empty)
 
@@ -246,7 +246,7 @@ and parse_simple (ts : token Seq.t) =
 
 and parse_imp_id_opt (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_ImpVar v, ts') -> (Some v, ts')
+  | Some (TK_ImpVar v, ts') -> (Some v, ts')
   | Some (t, ts') -> (None, append (singleton t) ts')
   | None -> (None, empty)
 
@@ -257,7 +257,7 @@ and parse_imp_id (ts : token Seq.t) =
 
 and parse_id (ts : token Seq.t) =
   match uncons ts with
-  | Some (T_Var v, ts') -> (v, ts')
+  | Some (TK_Var v, ts') -> (v, ts')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
   | _ -> raise (Failure "Invalid Syntax. Expected a named binding")
 

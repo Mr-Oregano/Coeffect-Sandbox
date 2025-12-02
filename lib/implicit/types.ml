@@ -7,7 +7,7 @@ module Ast = struct
     | E_Add of (exp * exp)
     | E_Var of id
     | E_ImpVar of id
-    | E_UnitVal
+    | E_Unit
     | E_Num of int
     | E_LetDyn of {
         imp : id;
@@ -17,7 +17,7 @@ module Ast = struct
 
   and typ =
     | T_Int
-    | T_UnitTyp
+    | T_Unit
     | T_Func of {
         from : typ;
         to_ : typ;
@@ -50,7 +50,7 @@ module ET = struct
     | E_Add of (exp * exp)
     | E_Var of id
     | E_ImpVar of id
-    | E_UnitVal
+    | E_Unit
     | E_Num of int
     | E_LetDyn of {
         imp : id;

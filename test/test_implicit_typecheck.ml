@@ -9,9 +9,9 @@ open Seq
 let test_typecheck_inputs_simple =
   [
     (([ D_Val ("x", (E_Num 9, T_Int)) ], (E_Var "x", T_Int)), "val x = 9 ; x");
-    (([ D_Val ("x", (E_UnitVal, T_Unit)) ], (E_Var "x", T_Unit)), "val x = () ; x");
+    (([ D_Val ("x", (E_Unit, T_Unit)) ], (E_Var "x", T_Unit)), "val x = () ; x");
     (([], (E_Num 9, T_Int)), "; 9");
-    (([], (E_UnitVal, T_Unit)), "; ()");
+    (([], (E_Unit, T_Unit)), "; ()");
     (([], (E_Add ((E_Num 6, T_Int), (E_Num 7, T_Int)), T_Int)), "; 6 + 7");
   ]
 
@@ -27,7 +27,7 @@ let test_typecheck_inputs_funcs =
               body = (E_Num 6, T_Int);
             };
         ],
-        ( E_App ((E_Var "f", T_Func { from = T_Unit; to_ = T_Int; imps = [] }), (E_UnitVal, T_Unit)),
+        ( E_App ((E_Var "f", T_Func { from = T_Unit; to_ = T_Int; imps = [] }), (E_Unit, T_Unit)),
           T_Int ) ),
       "fun f(x: unit): int = 6 ; f ()" );
     ( ( [

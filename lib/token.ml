@@ -1,24 +1,24 @@
 type token =
-  | T_LParen
-  | T_RParen
-  | T_LCurly
-  | T_RCurly
-  | T_Slash
-  | T_Period
-  | T_Comma
-  | T_Colon
-  | T_Semicolon
-  | T_Arrow
-  | T_Equals
-  | T_Plus
-  | T_Exclamation
-  | T_Fun
-  | T_Val
-  | T_IntTyp
-  | T_UnitTyp
-  | T_LetDyn
-  | T_In
-  | T_ImpVar of string
-  | T_Var of string
-  | T_Num of int
-  | T_UnitVal
+  | TK_LParen
+  | TK_RParen
+  | TK_LCurly
+  | TK_RCurly
+  | TK_Slash
+  | TK_Period
+  | TK_Comma
+  | TK_Colon
+  | TK_Semicolon
+  | TK_Arrow
+  | TK_Equals
+  | TK_Plus
+  | TK_Exclamation
+  | TK_KW_Fun
+  | TK_KW_Val
+  | TK_KW_Int
+  | TK_KW_Unit
+  | TK_KW_LetDyn
+  | TK_KW_In
+  | TK_ImpVar of string
+  | TK_Var of string
+  | TK_Num of int
+  | TK_Unit
