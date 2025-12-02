@@ -3,14 +3,12 @@ open Token
 open Lexer
 open Types
 
-let rec prog_to_string (p : prog) =
-  match p with None -> String.empty | Some e -> exp_to_string e
+let rec prog_to_string (p : prog) = match p with None -> String.empty | Some e -> exp_to_string e
 
 and exp_to_string (e : exp) =
   match e with
   | E_Abs (v, body) -> Printf.sprintf "Abs (%s) -> (%s)" v (exp_to_string body)
-  | E_App (abs, arg) ->
-      Printf.sprintf "App (%s) (%s)" (exp_to_string abs) (exp_to_string arg)
+  | E_App (abs, arg) -> Printf.sprintf "App (%s) (%s)" (exp_to_string abs) (exp_to_string arg)
   | E_Var v -> v
   | E_Num n -> Int.to_string n
 
@@ -22,8 +20,7 @@ let rec parse (ts : token Seq.t) : prog =
   | Some (t, ts') ->
       let exp, ts' = parse_exp (append (singleton t) ts') in
       (* Assert that the remaining stream is empty! *)
-      if not (is_empty ts') then raise (Failure "Invalid Syntax. Expected EOF")
-      else Some exp
+      if not (is_empty ts') then raise (Failure "Invalid Syntax. Expected EOF") else Some exp
 
 and parse_exp (ts : token Seq.t) =
   match uncons ts with
@@ -81,8 +78,5 @@ and consume (t : token) (ts : token Seq.t) =
   match uncons ts with
   | Some (t', ts') ->
       if t' = t then ts'
-      else
-        raise
-          (Failure
-             (Printf.sprintf "Invalid Syntax. Expected '%s'" (token_to_string t)))
+      else raise (Failure (Printf.sprintf "Invalid Syntax. Expected '%s'" (token_to_string t)))
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")

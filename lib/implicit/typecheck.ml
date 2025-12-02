@@ -13,17 +13,11 @@ let rec prog_to_string (p : ET.prog) =
 
 and decl_to_string (d : ET.decl) =
   match d with
-  | ET.D_Val (id, exp) ->
-      Printf.sprintf "D_Val %s = (%s)" id (exp_to_string exp)
+  | ET.D_Val (id, exp) -> Printf.sprintf "D_Val %s = (%s)" id (exp_to_string exp)
   | ET.D_Fun { name; params; ret_typ; body; imps } ->
       let s = Printf.sprintf "D_Fun %s %s" name (params_to_string params) in
-      let s' =
-        match imps with
-        | [] -> s
-        | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps)
-      in
-      Printf.sprintf "%s: %s = (%s)" s' (typ_to_string ret_typ)
-        (exp_to_string body)
+      let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
+      Printf.sprintf "%s: %s = (%s)" s' (typ_to_string ret_typ) (exp_to_string body)
 
 and typ_to_string (t : ET.typ) : string =
   match t with
@@ -31,22 +25,16 @@ and typ_to_string (t : ET.typ) : string =
   | ET.T_Unit -> "T_Unit"
   | ET.T_Func { from; to_; imps } ->
       let s = Printf.sprintf "%s" (typ_to_string from) in
-      let s' =
-        match imps with
-        | [] -> s
-        | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps)
-      in
+      let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
       Printf.sprintf "T_Func (%s -> %s)" s' (typ_to_string to_)
 
-and imp_to_string ((id, typ) : ET.imp) =
-  Printf.sprintf "%s: %s" id (typ_to_string typ)
+and imp_to_string ((id, typ) : ET.imp) = Printf.sprintf "%s: %s" id (typ_to_string typ)
 
 and imps_to_string (ls : ET.imp list) =
   let strings = List.map imp_to_string ls in
   String.concat ", " strings
 
-and param_to_string ((id, typ) : ET.param) =
-  Printf.sprintf "(%s: %s)" id (typ_to_string typ)
+and param_to_string ((id, typ) : ET.param) = Printf.sprintf "(%s: %s)" id (typ_to_string typ)
 
 and params_to_string (ps : ET.param list) =
   let strings = List.map param_to_string ps in
@@ -55,17 +43,15 @@ and params_to_string (ps : ET.param list) =
 and exp_to_string (e : ET.exp) =
   match e with
   | ET.E_App (abs, arg), typ ->
-      Printf.sprintf "E_App (%s) (%s): %s" (exp_to_string abs)
-        (exp_to_string arg) (typ_to_string typ)
-  | ET.E_Add (a, b), _ ->
-      Printf.sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
-  | ET.E_Var id, typ | ET.E_ImpVar id, typ ->
-      Printf.sprintf "E_Var (%s): %s" id (typ_to_string typ)
+      Printf.sprintf "E_App (%s) (%s): %s" (exp_to_string abs) (exp_to_string arg)
+        (typ_to_string typ)
+  | ET.E_Add (a, b), _ -> Printf.sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
+  | ET.E_Var id, typ | ET.E_ImpVar id, typ -> Printf.sprintf "E_Var (%s): %s" id (typ_to_string typ)
   | ET.E_UnitVal, _ -> "T_Unit"
   | ET.E_Num i, _ -> Printf.sprintf "E_Num (%s)" (Int.to_string i)
   | ET.E_LetDyn { imp; init; body }, typ ->
-      Printf.sprintf "E_LetDyn %s = (%s) in (%s): %s" imp (exp_to_string init)
-        (exp_to_string body) (typ_to_string typ)
+      Printf.sprintf "E_LetDyn %s = (%s) in (%s): %s" imp (exp_to_string init) (exp_to_string body)
+        (typ_to_string typ)
 
 let rec type_check (p : Ast.prog) : ET.prog =
   let ctx = empty () in
@@ -95,10 +81,7 @@ and type_check_exp (ctx : Context.t) (e : Ast.exp) : ET.exp =
           in
           (* The resulting context is "r U s U t" *)
           (E_App (func', arg'), to_)
-      | _ ->
-          raise
-            (Failure
-               (sprintf "Expected app of %s -> ..." (typ_to_string arg_typ))))
+      | _ -> raise (Failure (sprintf "Expected app of %s -> ..." (typ_to_string arg_typ))))
   | Ast.E_Add (e1, e2) ->
       let ((_, typ1) as e1') = type_check_exp ctx e1 in
       let ((_, typ2) as e2') = type_check_exp ctx e2 in
@@ -151,8 +134,8 @@ and type_check_param (ctx : Context.t) ((id, typ) : Ast.param) =
   let typ' = type_check_typ ctx typ in
   (id, typ')
 
-and type_check_params_imps_and_ret_typ (ctx : Context.t)
-    (params : Ast.param list) ?(imps : Ast.imp list = []) (ret_typ : Ast.typ) =
+and type_check_params_imps_and_ret_typ (ctx : Context.t) (params : Ast.param list)
+    ?(imps : Ast.imp list = []) (ret_typ : Ast.typ) =
   let ret_typ' = type_check_typ ctx ret_typ in
   let imps' = type_check_imps ctx imps in
   let _aux param (typ, params', imps) =
@@ -189,27 +172,15 @@ and type_check_decl (ctx : Context.t) (d : Ast.decl) : ET.decl =
       let () = assert_subtype body_typ ret_typ' in
       let () = add_var ctx (name, typ) in
 
-      ET.D_Fun
-        {
-          name;
-          params = params';
-          imps = imps';
-          ret_typ = ret_typ';
-          body = body';
-        }
+      ET.D_Fun { name; params = params'; imps = imps'; ret_typ = ret_typ'; body = body' }
 
 and assert_imps (ctx : Context.t) (imps : ET.imp list) =
   if for_all (fun (i, _) -> is_some (Context.get_imp ctx i)) imps then ()
-  else
-    raise
-      (Failure
-         (sprintf "Missing context requirements: { %s }" (imps_to_string imps)))
+  else raise (Failure (sprintf "Missing context requirements: { %s }" (imps_to_string imps)))
 
 and assert_subtype (typ1 : ET.typ) (typ2 : ET.typ) =
   (* TODO: Use subtyping rules instead of direct equality with types *)
   if typ1 = typ2 then ()
   else
     raise
-      (Failure
-         (sprintf "Expected type %s, but got %s" (typ_to_string typ2)
-            (typ_to_string typ1)))
+      (Failure (sprintf "Expected type %s, but got %s" (typ_to_string typ2) (typ_to_string typ1)))

@@ -9,8 +9,7 @@ open Seq
 let test_typecheck_inputs_simple =
   [
     (([ D_Val ("x", (E_Num 9, T_Int)) ], (E_Var "x", T_Int)), "val x = 9 ; x");
-    ( ([ D_Val ("x", (E_UnitVal, T_Unit)) ], (E_Var "x", T_Unit)),
-      "val x = () ; x" );
+    (([ D_Val ("x", (E_UnitVal, T_Unit)) ], (E_Var "x", T_Unit)), "val x = () ; x");
     (([], (E_Num 9, T_Int)), "; 9");
     (([], (E_UnitVal, T_Unit)), "; ()");
     (([], (E_Add ((E_Num 6, T_Int), (E_Num 7, T_Int)), T_Int)), "; 6 + 7");
@@ -28,9 +27,7 @@ let test_typecheck_inputs_funcs =
               body = (E_Num 6, T_Int);
             };
         ],
-        ( E_App
-            ( (E_Var "f", T_Func { from = T_Unit; to_ = T_Int; imps = [] }),
-              (E_UnitVal, T_Unit) ),
+        ( E_App ((E_Var "f", T_Func { from = T_Unit; to_ = T_Int; imps = [] }), (E_UnitVal, T_Unit)),
           T_Int ) ),
       "fun f(x: unit): int = 6 ; f ()" );
     ( ( [
@@ -77,13 +74,7 @@ let test_typecheck_inputs_letdyn =
               init = (E_Num 9, T_Int);
               body =
                 ( E_App
-                    ( ( E_Var "f",
-                        T_Func
-                          {
-                            from = T_Int;
-                            to_ = T_Int;
-                            imps = [ ("?y", T_Int) ];
-                          } ),
+                    ( (E_Var "f", T_Func { from = T_Int; to_ = T_Int; imps = [ ("?y", T_Int) ] }),
                       (E_Num 9, T_Int) ),
                   T_Int );
             },
@@ -114,11 +105,9 @@ let test_parser_inputs_fail =
     ("Expected type T_Int, but got T_Unit", "fun f (x: int): int = x ; f ()");
     ("Expected type T_Int, but got T_Unit", "fun f (x: int): int = () ; f 8");
     ("Expected type T_Int, but got T_Unit", "fun f (x: int): int = () ; f ()");
-    ( "Missing context requirements: { ?y: T_Int }",
-      "fun f (x: int) { ?y: int }: int = x + ?y; f 9" );
+    ("Missing context requirements: { ?y: T_Int }", "fun f (x: int) { ?y: int }: int = x + ?y; f 9");
     ("Unbound implicit parameter '?y'", "fun f (x: int): int = x + ?y; f");
-    ( "Unbound implicit parameter '?z'",
-      "fun f (x: int) { ?y: int }: int = x + ?y + ?z; f" );
+    ("Unbound implicit parameter '?z'", "fun f (x: int) { ?y: int }: int = x + ?y + ?z; f");
   ]
 
 let test_typecheck_fail (msg, inputs) =
@@ -131,9 +120,7 @@ let test_typecheck_fail (msg, inputs) =
         let _ = type_check ast in
         ())
   in
-  let name =
-    Format.sprintf "Type checker raises exception for '%s'" inputs_str
-  in
+  let name = Format.sprintf "Type checker raises exception for '%s'" inputs_str in
   Alcotest.test_case name `Quick tester
 
 let suite =

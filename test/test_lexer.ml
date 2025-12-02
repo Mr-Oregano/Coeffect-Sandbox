@@ -14,8 +14,7 @@ let test_lex_empty () =
     empty (lex empty)
 
 let test_lex_fail () =
-  Alcotest.check_raises "Did not raise exception"
-    (Failure "Unexpected character") (fun () ->
+  Alcotest.check_raises "Did not raise exception" (Failure "Unexpected character") (fun () ->
       iter (fun _ -> ()) (lex (singleton '$')))
 
 let test_lex_inputs_single =
@@ -61,18 +60,12 @@ let test_lex_inputs_vars_and_literals =
 let test_lex_inputs_complete =
   [
     ([ T_Slash; T_Var "x"; T_Period; T_Var "x" ], "\\x.x");
-    ( [
-        T_LParen; T_Slash; T_Var "x"; T_Period; T_Var "x"; T_RParen; T_Num 69420;
-      ],
-      "(\\x. x) 69420" );
+    ([ T_LParen; T_Slash; T_Var "x"; T_Period; T_Var "x"; T_RParen; T_Num 69420 ], "(\\x. x) 69420");
   ]
 
 let test_lex_inputs_in_channel =
   [
-    ( [
-        T_LParen; T_Slash; T_Var "x"; T_Period; T_Var "x"; T_RParen; T_Num 69420;
-      ],
-      "(\\x. x) 69420" );
+    ([ T_LParen; T_Slash; T_Var "x"; T_Period; T_Var "x"; T_RParen; T_Num 69420 ], "(\\x. x) 69420");
   ]
 
 let test_lex_inputs_implicit_parameters =
@@ -105,14 +98,14 @@ let test_lex_toks (expected, inputs) =
       (Format.sprintf "Did not produce expected for '%s'" inputs_str)
       expected_seq (lex inputs_seq)
   in
-  let name =
-    Format.sprintf "Lexer generates valid tokens for '%s'" inputs_str
-  in
+  let name = Format.sprintf "Lexer generates valid tokens for '%s'" inputs_str in
   Alcotest.test_case name `Quick tester
 
 let suite =
-  [ Alcotest.test_case "Lexer generates empty sequence" `Quick test_lex_empty ]
-  @ [ Alcotest.test_case "Lexer generates failures" `Quick test_lex_fail ]
+  [
+    Alcotest.test_case "Lexer generates empty sequence" `Quick test_lex_empty;
+    Alcotest.test_case "Lexer generates failures" `Quick test_lex_fail;
+  ]
   @ List.map test_lex_toks test_lex_inputs_single
   @ List.map test_lex_toks test_lex_inputs_standard
   @ List.map test_lex_toks test_lex_inputs_spaces

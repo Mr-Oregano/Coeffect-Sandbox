@@ -8,9 +8,7 @@ open Lambda.Types
 open Test_core
 
 let test_interpret_empty () =
-  Alcotest.(check lambda_res)
-    (Format.sprintf "Parser does not produce empty AST")
-    None (eval None)
+  Alcotest.(check lambda_res) (Format.sprintf "Parser does not produce empty AST") None (eval None)
 
 let test_interpret_fail () =
   Alcotest.check_raises "Did not raise exception"
@@ -18,17 +16,13 @@ let test_interpret_fail () =
       let _ = eval (parse (lex (once (String.to_seq "69 420")))) in
       ())
 
-let test_interpret_inputs_simple =
-  [ (I_Num 69420, "69420"); (I_Clo ("x", E_Var "x", []), "\\x.x") ]
+let test_interpret_inputs_simple = [ (I_Num 69420, "69420"); (I_Clo ("x", E_Var "x", []), "\\x.x") ]
 
 let test_interpret_inputs_application =
   [
     (I_Num 69420, "(\\x.x) 69420");
     (I_Num 69420, "(\\x.\\y.x y) (\\z.z) 69420");
-    ( I_Clo
-        ( "y",
-          E_App (E_Var "x", E_Var "y"),
-          [ ("x", I_Clo ("z", E_Var "z", [])) ] ),
+    ( I_Clo ("y", E_App (E_Var "x", E_Var "y"), [ ("x", I_Clo ("z", E_Var "z", [])) ]),
       "(\\x.\\y.x y) (\\z.z)" );
   ]
 
@@ -42,9 +36,7 @@ let test_interpret_prog (expected, inputs) =
       (Format.sprintf "Did not produce expected for '%s'" inputs_str)
       (Some expected) (eval prog)
   in
-  let name =
-    Format.sprintf "Interp resolves to valid value for '%s'" inputs_str
-  in
+  let name = Format.sprintf "Interp resolves to valid value for '%s'" inputs_str in
   Alcotest.test_case name `Quick tester
 
 let suite =

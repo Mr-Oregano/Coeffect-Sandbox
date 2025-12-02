@@ -25,18 +25,13 @@ let test_parser_inputs_application =
     (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), "f x y");
     (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), "(f x) y");
     (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), "((f x) y)");
-    ( E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"),
-      "f x y z" );
-    ( E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"),
-      "(f x) y z" );
-    ( E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"),
-      "((f x) y) z" );
-    ( E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"),
-      "(((f x) y) z)" );
+    (E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"), "f x y z");
+    (E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"), "(f x) y z");
+    (E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"), "((f x) y) z");
+    (E_App (E_App (E_App (E_Var "f", E_Var "x"), E_Var "y"), E_Var "z"), "(((f x) y) z)");
     (* Parentheses correctly override associativity *)
     (E_App (E_Var "f", E_App (E_Var "x", E_Var "y")), "f (x y)");
-    ( E_App (E_App (E_Var "f", E_App (E_Var "x", E_Var "y")), E_Var "z"),
-      "f (x y) z" );
+    (E_App (E_App (E_Var "f", E_App (E_Var "x", E_Var "y")), E_Var "z"), "f (x y) z");
   ]
 
 let test_parser_inputs_abstraction =
@@ -83,9 +78,7 @@ let test_parse_fail (msg, inputs) =
         let _ = parse tokens_seq in
         ())
   in
-  let name =
-    Format.sprintf "Parser raises exception for invalid program '%s'" inputs_str
-  in
+  let name = Format.sprintf "Parser raises exception for invalid program '%s'" inputs_str in
   Alcotest.test_case name `Quick tester
 
 let suite =

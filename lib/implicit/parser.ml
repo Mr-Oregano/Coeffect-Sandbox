@@ -13,13 +13,8 @@ and decl_to_string (d : decl) =
   | D_Val (id, exp) -> Printf.sprintf "D_Val %s = (%s)" id (exp_to_string exp)
   | D_Fun { name; params; ret_typ; body; imps } ->
       let s = Printf.sprintf "D_Fun %s %s" name (params_to_string params) in
-      let s' =
-        match imps with
-        | [] -> s
-        | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps)
-      in
-      Printf.sprintf "%s: %s = (%s)" s' (typ_to_string ret_typ)
-        (exp_to_string body)
+      let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
+      Printf.sprintf "%s: %s = (%s)" s' (typ_to_string ret_typ) (exp_to_string body)
 
 and typ_to_string (t : typ) =
   match t with
@@ -27,22 +22,16 @@ and typ_to_string (t : typ) =
   | T_UnitTyp -> "T_Unit"
   | T_Func { from; to_; imps } ->
       let s = Printf.sprintf "%s" (typ_to_string from) in
-      let s' =
-        match imps with
-        | [] -> s
-        | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps)
-      in
+      let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
       Printf.sprintf "T_Func (%s -> %s)" s' (typ_to_string to_)
 
-and imp_to_string ((id, typ) : id * typ) =
-  Printf.sprintf "%s: %s" id (typ_to_string typ)
+and imp_to_string ((id, typ) : id * typ) = Printf.sprintf "%s: %s" id (typ_to_string typ)
 
 and imps_to_string (ls : (id * typ) list) =
   let strings = List.map imp_to_string ls in
   String.concat ", " strings
 
-and param_to_string ((id, typ) : param) =
-  Printf.sprintf "(%s: %s)" id (typ_to_string typ)
+and param_to_string ((id, typ) : param) = Printf.sprintf "(%s: %s)" id (typ_to_string typ)
 
 and params_to_string (ps : param list) =
   let strings = List.map param_to_string ps in
@@ -50,16 +39,13 @@ and params_to_string (ps : param list) =
 
 and exp_to_string (e : exp) =
   match e with
-  | E_App (abs, arg) ->
-      Printf.sprintf "E_App (%s) (%s)" (exp_to_string abs) (exp_to_string arg)
-  | E_Add (a, b) ->
-      Printf.sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
+  | E_App (abs, arg) -> Printf.sprintf "E_App (%s) (%s)" (exp_to_string abs) (exp_to_string arg)
+  | E_Add (a, b) -> Printf.sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
   | E_Var id | E_ImpVar id -> Printf.sprintf "E_Var (%s)" id
   | E_UnitVal -> "E_Unit"
   | E_Num i -> Printf.sprintf "E_Num (%s)" (Int.to_string i)
   | E_LetDyn { imp; init; body } ->
-      Printf.sprintf "E_LetDyn %s = (%s) in (%s)" imp (exp_to_string init)
-        (exp_to_string body)
+      Printf.sprintf "E_LetDyn %s = (%s) in (%s)" imp (exp_to_string init) (exp_to_string body)
 
 (* TODO: Implement capture-avoiding substitution *)
 (* TODO: Rather than immediately raising errors, queue them into a list, and attempt recovery *)
@@ -73,9 +59,7 @@ let rec parse (ts : token Seq.t) : prog =
       let decls, ts'' = parse_decls (append (singleton t) ts') in
       let exp, ts''' = parse_exp ts'' in
       (* Assert that the remaining stream is empty! *)
-      if not (is_empty ts''') then
-        raise (Failure "Invalid Syntax. Expected EOF")
-      else (decls, exp)
+      if not (is_empty ts''') then raise (Failure "Invalid Syntax. Expected EOF") else (decls, exp)
 
 and parse_decls (ts : token Seq.t) =
   let rec _aux decls ts' =
@@ -100,8 +84,7 @@ and parse_decl (ts : token Seq.t) =
   | Some (T_Fun, ts') ->
       let id, ts'' = parse_id ts' in
       let params, ts'' = parse_params ts'' in
-      if List.is_empty params then
-        raise (Failure "Invalid Syntax. Requires at least one parameter")
+      if List.is_empty params then raise (Failure "Invalid Syntax. Requires at least one parameter")
       else
         let imps_opt, ts'' = parse_imps_opt ts'' in
         let imps = Option.value imps_opt ~default:[] in
@@ -283,8 +266,5 @@ and consume (t : token) (ts : token Seq.t) =
   | Some (t', ts') ->
       if t' = t then ts'
       else
-        raise
-          (Failure
-             (Printf.sprintf "Invalid Syntax. Expected '%s'"
-                (Lexer.token_to_string t)))
+        raise (Failure (Printf.sprintf "Invalid Syntax. Expected '%s'" (Lexer.token_to_string t)))
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")

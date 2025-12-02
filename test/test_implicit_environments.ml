@@ -89,9 +89,7 @@ let suite =
   [
     Alcotest.test_case "Context generates empty" `Quick test_context_empty;
     Alcotest.test_case "Context adds entries" `Quick test_context_add;
-    Alcotest.test_case "Context adds entries multiple" `Quick
-      test_context_add_multiple;
+    Alcotest.test_case "Context adds entries multiple" `Quick test_context_add_multiple;
     Alcotest.test_case "Context removes entries" `Quick test_context_remove;
-    Alcotest.test_case "Context removes entries multiple" `Quick
-      test_context_remove_multiple;
+    Alcotest.test_case "Context removes entries multiple" `Quick test_context_remove_multiple;
   ]
