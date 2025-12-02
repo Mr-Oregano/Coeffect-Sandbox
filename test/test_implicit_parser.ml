@@ -52,7 +52,8 @@ let test_parser_inputs_fun_decls =
           D_Fun
             {
               name = "f";
-              params = [ { name = "x"; typ = T_Int; imps = [] } ];
+              params = [ ("x", T_Int) ];
+              imps = [];
               ret_typ = T_Int;
               body = E_Var "x";
             };
@@ -79,14 +80,11 @@ let test_parser_inputs_params =
               name = "f";
               params =
                 [
-                  { name = "a"; typ = T_Int; imps = [] };
-                  { name = "b"; typ = T_UnitTyp; imps = [] };
-                  {
-                    name = "d";
-                    typ = T_Func { from = T_Int; to_ = T_UnitTyp; imps = [] };
-                    imps = [];
-                  };
+                  ("a", T_Int);
+                  ("b", T_UnitTyp);
+                  ("d", T_Func { from = T_Int; to_ = T_UnitTyp; imps = [] });
                 ];
+              imps = [];
               ret_typ = T_Int;
               body = E_Var "x";
             };
@@ -99,14 +97,11 @@ let test_parser_inputs_params =
               name = "f";
               params =
                 [
-                  {
-                    name = "a";
-                    typ =
-                      T_Func
-                        { from = T_Int; to_ = T_Int; imps = [ ("?x", T_Int) ] };
-                    imps = [];
-                  };
+                  ( "a",
+                    T_Func
+                      { from = T_Int; to_ = T_Int; imps = [ ("?x", T_Int) ] } );
                 ];
+              imps = [];
               ret_typ = T_Int;
               body = E_Num 69;
             };
@@ -119,25 +114,21 @@ let test_parser_inputs_params =
               name = "f";
               params =
                 [
-                  {
-                    name = "a";
-                    typ =
-                      T_Func
-                        {
-                          from = T_Int;
-                          to_ = T_UnitTyp;
-                          imps =
-                            [
-                              ("?x", T_Int);
-                              ( "?y",
-                                T_Func
-                                  { from = T_Int; to_ = T_UnitTyp; imps = [] }
-                              );
-                            ];
-                        };
-                    imps = [];
-                  };
+                  ( "a",
+                    T_Func
+                      {
+                        from = T_Int;
+                        to_ = T_UnitTyp;
+                        imps =
+                          [
+                            ("?x", T_Int);
+                            ( "?y",
+                              T_Func
+                                { from = T_Int; to_ = T_UnitTyp; imps = [] } );
+                          ];
+                      } );
                 ];
+              imps = [];
               ret_typ = T_Int;
               body = E_Num 69;
             };
@@ -149,51 +140,26 @@ let test_parser_inputs_params =
           D_Fun
             {
               name = "f";
-              params =
-                [
-                  {
-                    name = "a";
-                    typ = T_Int;
-                    imps = [ ("?x", T_Int); ("?y", T_Int) ];
-                  };
-                  { name = "b"; typ = T_Int; imps = [] };
-                ];
+              params = [ ("a", T_Int); ("b", T_Int) ];
+              imps = [ ("?x", T_Int); ("?y", T_Int) ];
               ret_typ = T_Int;
               body = E_ImpVar "?x";
             };
         ],
         E_App (E_Var "f", E_Num 9) ),
-      "fun f (a: int) { ?x: int, ?y: int } (b: int): int = ?x ; f 9" );
+      "fun f (a: int) (b: int) { ?x: int, ?y: int } : int = ?x ; f 9" );
     ( ( [
           D_Fun
             {
               name = "f";
-              params =
-                [
-                  { name = "a"; typ = T_Int; imps = [ ("?x", T_Int) ] };
-                  { name = "b"; typ = T_Int; imps = [ ("?y", T_Int) ] };
-                ];
-              ret_typ = T_Int;
-              body = E_ImpVar "?x";
-            };
-        ],
-        E_App (E_Var "f", E_Num 9) ),
-      "fun f (a: int) { ?x: int } (b: int) { ?y: int }: int = ?x ; f 9" );
-    ( ( [
-          D_Fun
-            {
-              name = "f";
-              params =
-                [
-                  { name = "a"; typ = T_Int; imps = [] };
-                  { name = "b"; typ = T_Int; imps = [] };
-                ];
+              params = [ ("a", T_Int); ("b", T_Int) ];
+              imps = [];
               ret_typ = T_Int;
               body = E_Var "a";
             };
         ],
         E_App (E_Var "f", E_Num 9) ),
-      "fun f (a: int) {} (b: int) {}: int = a ; f 9" );
+      "fun f (a: int) (b: int) {}: int = a ; f 9" );
   ]
 
 let test_parse_ast (expected, inputs) =
@@ -201,7 +167,7 @@ let test_parse_ast (expected, inputs) =
   let chars_seq = once (String.to_seq inputs) in
   let tokens_seq = lex chars_seq in
   let tester () =
-    Alcotest.(check implicit_prog)
+    Alcotest.(check implicit_ast)
       (Format.sprintf "Did not produce expected for '%s'" inputs_str)
       expected (parse tokens_seq)
   in
@@ -214,6 +180,8 @@ let test_parser_inputs_fail =
       "fun { ?y: int } (x: int) { ?z: int }: int = x ; f 9" );
     ( "Invalid Syntax. Expected ':'",
       "fun f(x: int) { ?y: int } { ?z: int }: int = x ; f 9" );
+    ( "Invalid Syntax. Expected ':'",
+      "fun f(x: int) { ?y: int } (z: int): int = x ; f 9" );
     ( "Invalid Syntax. Expected implicit parameter binding",
       "fun f(x: int) { ?y: int, }: int = x ; f 9" );
     ("Invalid Syntax. Expected a named binding", "fun (x: int): int = x ; f 9");

@@ -24,17 +24,15 @@ module Ast = struct
         imps : (id * typ) list;
       }
 
-  and param = {
-    name : id;
-    typ : typ;
-    imps : (id * typ) list;
-  }
+  and param = id * typ
+  and imp = id * typ
 
   and decl =
     | D_Val of id * exp
     | D_Fun of {
         name : id;
         params : param list;
+        imps : (id * typ) list;
         ret_typ : typ;
         body : exp;
       }
@@ -44,30 +42,41 @@ end
 
 (* Elaborated Tree *)
 module ET = struct
-  type id = string * typ
-  and exp = Ast.exp * typ
+  type id = string
+  and exp = exp_t * typ
 
-  and typ =
-    | ET_Int
-    | ET_Unit
-    | ET_Func of {
-        from : typ;
-        to_ : typ;
-        imps : id list;
+  and exp_t =
+    | E_App of (exp * exp)
+    | E_Add of (exp * exp)
+    | E_Var of id
+    | E_ImpVar of id
+    | E_UnitVal
+    | E_Num of int
+    | E_LetDyn of {
+        imp : id;
+        init : exp;
+        body : exp;
       }
 
-  and param = {
-    name : id;
-    typ : typ;
-    imps : (id * typ) list;
-  }
+  and typ =
+    | T_Int
+    | T_Unit
+    | T_Func of {
+        from : typ;
+        to_ : typ;
+        imps : (id * typ) list;
+      }
+
+  and param = id * typ
+  and imp = id * typ
 
   and decl =
-    | ET_Val of id * exp
-    | ET_Fun of {
+    | D_Val of id * exp
+    | D_Fun of {
         name : id;
         params : param list;
-        ret_typ : id;
+        imps : imp list;
+        ret_typ : typ;
         body : exp;
       }
 

@@ -7,8 +7,8 @@
 <decl> ::= <fun_decl>
          | <val_decl> .
 
-<fun_decl> ::= 'fun' id <param>+ ':' <type> '=' <expr> .
-<param> ::= '(' id ':' <type> ')' <imps>?
+<fun_decl> ::= 'fun' id <param>+ <imps>? ':' <type> '=' <expr> .
+<param> ::= '(' id ':' <type> ')'
 
 <val_decl> ::= 'val' id '=' <expr> .
 

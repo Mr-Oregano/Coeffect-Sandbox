@@ -11,17 +11,28 @@ let rec prog_to_string (p : prog) =
 and decl_to_string (d : decl) =
   match d with
   | D_Val (id, exp) -> Printf.sprintf "D_Val %s = (%s)" id (exp_to_string exp)
-  | D_Fun { name; params; ret_typ; body } ->
-      Printf.sprintf "D_Fun %s %s: %s = (%s)" name (params_to_string params)
-        (typ_to_string ret_typ) (exp_to_string body)
+  | D_Fun { name; params; ret_typ; body; imps } ->
+      let s = Printf.sprintf "D_Fun %s %s" name (params_to_string params) in
+      let s' =
+        match imps with
+        | [] -> s
+        | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps)
+      in
+      Printf.sprintf "%s: %s = (%s)" s' (typ_to_string ret_typ)
+        (exp_to_string body)
 
 and typ_to_string (t : typ) =
   match t with
   | T_Int -> "T_Int"
   | T_UnitTyp -> "T_Unit"
   | T_Func { from; to_; imps } ->
-      Printf.sprintf "T_Func (%s {%s} -> %s)" (typ_to_string from)
-        (imps_to_string imps) (typ_to_string to_)
+      let s = Printf.sprintf "%s" (typ_to_string from) in
+      let s' =
+        match imps with
+        | [] -> s
+        | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps)
+      in
+      Printf.sprintf "T_Func (%s -> %s)" s' (typ_to_string to_)
 
 and imp_to_string ((id, typ) : id * typ) =
   Printf.sprintf "%s: %s" id (typ_to_string typ)
@@ -30,11 +41,8 @@ and imps_to_string (ls : (id * typ) list) =
   let strings = List.map imp_to_string ls in
   String.concat ", " strings
 
-and param_to_string (p : param) =
-  let params_str = Printf.sprintf "(%s: %s)" p.name (typ_to_string p.typ) in
-  match p.imps with
-  | [] -> params_str
-  | _ -> Printf.sprintf "%s {%s}" params_str (imps_to_string p.imps)
+and param_to_string ((id, typ) : param) =
+  Printf.sprintf "(%s: %s)" id (typ_to_string typ)
 
 and params_to_string (ps : param list) =
   let strings = List.map param_to_string ps in
@@ -95,11 +103,13 @@ and parse_decl (ts : token Seq.t) =
       if List.is_empty params then
         raise (Failure "Invalid Syntax. Requires at least one parameter")
       else
+        let imps_opt, ts'' = parse_imps_opt ts'' in
+        let imps = Option.value imps_opt ~default:[] in
         let ts'' = consume T_Colon ts'' in
         let typ, ts'' = parse_type ts'' in
         let ts'' = consume T_Equals ts'' in
         let body, ts'' = parse_exp ts'' in
-        (D_Fun { name = id; params; ret_typ = typ; body }, ts'')
+        (D_Fun { name = id; params; ret_typ = typ; body; imps }, ts'')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
   | _ -> raise (Failure "Invalid Syntax. Expected 'fun' or 'val' declaration")
 
@@ -123,9 +133,7 @@ and parse_param (ts : token Seq.t) =
       let ts' = consume T_Colon ts' in
       let typ, ts' = parse_type ts' in
       let ts' = consume T_RParen ts' in
-      let imps_opt, ts' = parse_imps_opt ts' in
-      let imps = Option.value imps_opt ~default:[] in
-      ({ name = id; typ; imps }, ts')
+      ((id, typ), ts')
   | Some _ -> raise (Failure "Invalid Syntax. Expected parameter binding")
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
 
