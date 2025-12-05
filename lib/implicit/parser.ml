@@ -47,7 +47,6 @@ and exp_to_string (e : exp) =
   | E_LetDyn { imp; init; body } ->
       Printf.sprintf "E_LetDyn %s = (%s) in (%s)" imp (exp_to_string init) (exp_to_string body)
 
-(* TODO: Implement capture-avoiding substitution *)
 (* TODO: Rather than immediately raising errors, queue them into a list, and attempt recovery *)
 (* TODO: Use monadic bind ( "let*" ) or Stream construct to avoid the excessive use of ts' references! *)
 (* TODO: Consider using a better structure than an immutable list for lists of AST nodes *)
