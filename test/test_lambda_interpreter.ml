@@ -40,7 +40,9 @@ let test_interpret_prog (expected, inputs) =
   Alcotest.test_case name `Quick tester
 
 let suite =
-  [ Alcotest.test_case "Interp resolves to no-op" `Quick test_interpret_empty ]
-  @ [ Alcotest.test_case "Interp raises exception" `Quick test_interpret_fail ]
+  [
+    Alcotest.test_case "Interp resolves to no-op" `Quick test_interpret_empty;
+    Alcotest.test_case "Interp raises exception" `Quick test_interpret_fail;
+  ]
   @ List.map test_interpret_prog test_interpret_inputs_simple
   @ List.map test_interpret_prog test_interpret_inputs_application

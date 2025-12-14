@@ -3,6 +3,11 @@ module Ast = struct
   type id = string
 
   and exp =
+    | E_Abs of {
+        param : param;
+        imps : imp list;
+        body : exp;
+      }
     | E_App of (exp * exp)
     | E_Add of (exp * exp)
     | E_Var of id
@@ -27,15 +32,11 @@ module Ast = struct
   and param = id * typ
   and imp = id * typ
 
-  and decl =
-    | D_Val of id * exp
-    | D_Fun of {
-        name : id;
-        params : param list;
-        imps : (id * typ) list;
-        ret_typ : typ;
-        body : exp;
-      }
+  and decl = {
+    name : id;
+    exp : exp;
+    typ_opt : typ option;
+  }
 
   and prog = decl list * exp
 end
@@ -46,6 +47,11 @@ module ET = struct
   and exp = exp_t * typ
 
   and exp_t =
+    | E_Abs of {
+        param : param;
+        imps : imp list;
+        body : exp;
+      }
     | E_App of (exp * exp)
     | E_Add of (exp * exp)
     | E_Var of id
@@ -70,25 +76,30 @@ module ET = struct
   and param = id * typ
   and imp = id * typ
 
-  and decl =
-    | D_Val of id * exp
-    | D_Fun of {
-        name : id;
-        params : param list;
-        imps : imp list;
-        ret_typ : typ;
-        body : exp;
-      }
+  and decl = {
+    name : id;
+    exp : exp;
+  }
 
   type prog = decl list * exp
 end
 
 (* Interpreter Structures *)
-module Interpreter = struct
-  type value =
-    | I_Num of int
-    | I_Clo of (ET.id * ET.exp * env)
+module Interp = struct
+  type id = string
+  and binding = id * value
 
-  and env = (ET.id * value) list
-  and res = value option
+  and value =
+    | V_Unit
+    | V_Num of int
+    | V_Clo of clo
+
+  and clo = {
+    param_id : ET.id;
+    body : ET.exp;
+    env : binding list;
+    imps : binding list;
+  }
+
+  and res = value
 end

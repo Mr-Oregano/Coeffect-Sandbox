@@ -8,8 +8,8 @@ open Seq
 
 let test_typecheck_inputs_simple =
   [
-    (([ D_Val ("x", (E_Num 9, T_Int)) ], (E_Var "x", T_Int)), "val x = 9 ; x");
-    (([ D_Val ("x", (E_Unit, T_Unit)) ], (E_Var "x", T_Unit)), "val x = () ; x");
+    (([ { name = "x"; exp = (E_Num 9, T_Int) } ], (E_Var "x", T_Int)), "val x = 9 ; x");
+    (([ { name = "x"; exp = (E_Unit, T_Unit) } ], (E_Var "x", T_Unit)), "val x = () ; x");
     (([], (E_Num 9, T_Int)), "; 9");
     (([], (E_Unit, T_Unit)), "; ()");
     (([], (E_Add ((E_Num 6, T_Int), (E_Num 7, T_Int)), T_Int)), "; 6 + 7");
@@ -18,27 +18,37 @@ let test_typecheck_inputs_simple =
 let test_typecheck_inputs_funcs =
   [
     ( ( [
-          D_Fun
-            {
-              name = "f";
-              params = [ ("x", T_Unit) ];
-              imps = [];
-              ret_typ = T_Int;
-              body = (E_Num 6, T_Int);
-            };
+          {
+            name = "f";
+            exp =
+              ( E_Abs { param = ("x", T_Unit); imps = []; body = (E_Num 6, T_Int) },
+                T_Func { from = T_Unit; to_ = T_Int; imps = [] } );
+          };
         ],
         ( E_App ((E_Var "f", T_Func { from = T_Unit; to_ = T_Int; imps = [] }), (E_Unit, T_Unit)),
           T_Int ) ),
-      "fun f(x: unit): int = 6 ; f ()" );
+      "fun f(x: unit): unit -> int = 6 ; f ()" );
     ( ( [
-          D_Fun
-            {
-              name = "f";
-              params = [ ("x", T_Int); ("y", T_Int) ];
-              imps = [];
-              ret_typ = T_Int;
-              body = (E_Add ((E_Var "x", T_Int), (E_Var "y", T_Int)), T_Int);
-            };
+          {
+            name = "f";
+            exp =
+              ( E_Abs
+                  {
+                    param = ("x", T_Int);
+                    imps = [];
+                    body =
+                      ( E_Abs
+                          {
+                            param = ("y", T_Int);
+                            imps = [];
+                            body = (E_Add ((E_Var "x", T_Int), (E_Var "y", T_Int)), T_Int);
+                          },
+                        T_Func { from = T_Int; to_ = T_Int; imps = [] } );
+                  },
+                T_Func
+                  { from = T_Int; to_ = T_Func { from = T_Int; to_ = T_Int; imps = [] }; imps = [] }
+              );
+          };
         ],
         ( E_App
             ( ( E_App
@@ -53,20 +63,23 @@ let test_typecheck_inputs_funcs =
                 T_Func { from = T_Int; to_ = T_Int; imps = [] } ),
               (E_Num 9, T_Int) ),
           T_Int ) ),
-      "fun f(x: int) (y: int): int = x + y ; f 6 9" );
+      "fun f(x: int) (y: int): int -> int -> int = x + y ; f 6 9" );
   ]
 
 let test_typecheck_inputs_letdyn =
   [
     ( ( [
-          D_Fun
-            {
-              name = "f";
-              params = [ ("x", T_Int) ];
-              imps = [ ("?y", T_Int) ];
-              ret_typ = T_Int;
-              body = (E_Add ((E_Var "x", T_Int), (E_ImpVar "?y", T_Int)), T_Int);
-            };
+          {
+            name = "f";
+            exp =
+              ( E_Abs
+                  {
+                    param = ("x", T_Int);
+                    imps = [ ("?y", T_Int) ];
+                    body = (E_Add ((E_Var "x", T_Int), (E_ImpVar "?y", T_Int)), T_Int);
+                  },
+                T_Func { from = T_Int; to_ = T_Int; imps = [ ("?y", T_Int) ] } );
+          };
         ],
         ( E_LetDyn
             {
@@ -79,7 +92,7 @@ let test_typecheck_inputs_letdyn =
                   T_Int );
             },
           T_Int ) ),
-      "fun f (x: int) {?y: int}: int = x + ?y ; letdyn ?y = 9 in f 9" );
+      "fun f (x: int) {?y: int}: int { ?y: int } -> int = x + ?y ; letdyn ?y = 9 in f 9" );
   ]
 
 let test_type_check (expected, inputs) =
@@ -102,12 +115,17 @@ let test_parser_inputs_fail =
     ("Expected app of T_Int -> ...", " ; 6 9");
     ("Expected app of T_Int -> ...", " ; () 9");
     ("Unbound implicit parameter '?x'", " ; ?x");
-    ("Expected type T_Int, but got T_Unit", "fun f (x: int): int = x ; f ()");
-    ("Expected type T_Int, but got T_Unit", "fun f (x: int): int = () ; f 8");
-    ("Expected type T_Int, but got T_Unit", "fun f (x: int): int = () ; f ()");
-    ("Missing context requirements: { ?y: T_Int }", "fun f (x: int) { ?y: int }: int = x + ?y; f 9");
-    ("Unbound implicit parameter '?y'", "fun f (x: int): int = x + ?y; f");
-    ("Unbound implicit parameter '?z'", "fun f (x: int) { ?y: int }: int = x + ?y + ?z; f");
+    ("Expected type T_Int, but got T_Unit", "fun f (x: int): int -> int = x ; f ()");
+    ( "Expected type T_Func (T_Int -> T_Int), but got T_Func (T_Int -> T_Unit)",
+      "fun f (x: int): int -> int = () ; f 8" );
+    ( "Expected type T_Func (T_Int -> T_Int), but got T_Func (T_Int -> T_Unit)",
+      "fun f (x: int): int -> int = () ; f ()" );
+    ( "Missing context requirements: { ?y: T_Int }",
+      "fun f (x: int) { ?y: int }: int { ?y: int } -> int = x + ?y; f 9" );
+    ("Unbound implicit parameter '?y'", "fun f (x: int): int -> int = x + ?y; f");
+    ( "Unbound implicit parameter '?z'",
+      "fun f (x: int) { ?y: int }: int { ?y: int } -> int = x + ?y + ?z; f" );
+    ("Unbound variable 'z'", "fun f (x: int): int -> int = x + z\nval z = 8; f");
   ]
 
 let test_typecheck_fail (msg, inputs) =

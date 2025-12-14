@@ -1,6 +1,7 @@
 open Seq
 open Token
 open Types.Ast
+open Printf
 
 let rec prog_to_string (p : prog) =
   let decls, exp = p in
@@ -9,43 +10,42 @@ let rec prog_to_string (p : prog) =
   decls_str ^ " ; " ^ exp_to_string exp
 
 and decl_to_string (d : decl) =
-  match d with
-  | D_Val (id, exp) -> Printf.sprintf "D_Val %s = (%s)" id (exp_to_string exp)
-  | D_Fun { name; params; ret_typ; body; imps } ->
-      let s = Printf.sprintf "D_Fun %s %s" name (params_to_string params) in
-      let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
-      Printf.sprintf "%s: %s = (%s)" s' (typ_to_string ret_typ) (exp_to_string body)
+  let { name; exp; typ_opt } = d in
+  let s = sprintf "%s" name in
+  let s' = match typ_opt with None -> s | Some t -> sprintf "%s: %s" s (typ_to_string t) in
+  sprintf "%s = %s" s' (exp_to_string exp)
 
 and typ_to_string (t : typ) =
   match t with
   | T_Int -> "T_Int"
   | T_Unit -> "T_Unit"
   | T_Func { from; to_; imps } ->
-      let s = Printf.sprintf "%s" (typ_to_string from) in
-      let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
-      Printf.sprintf "T_Func (%s -> %s)" s' (typ_to_string to_)
+      let s = sprintf "%s" (typ_to_string from) in
+      let s' = match imps with [] -> s | _ -> sprintf "%s {%s}" s (imps_to_string imps) in
+      sprintf "T_Func (%s -> %s)" s' (typ_to_string to_)
 
-and imp_to_string ((id, typ) : id * typ) = Printf.sprintf "%s: %s" id (typ_to_string typ)
+and imp_to_string ((id, typ) : id * typ) = sprintf "%s: %s" id (typ_to_string typ)
 
 and imps_to_string (ls : (id * typ) list) =
   let strings = List.map imp_to_string ls in
   String.concat ", " strings
 
-and param_to_string ((id, typ) : param) = Printf.sprintf "(%s: %s)" id (typ_to_string typ)
-
-and params_to_string (ps : param list) =
-  let strings = List.map param_to_string ps in
-  String.concat " " strings
+and param_to_string ((id, typ) : param) = sprintf "(%s: %s)" id (typ_to_string typ)
 
 and exp_to_string (e : exp) =
   match e with
-  | E_App (abs, arg) -> Printf.sprintf "E_App (%s) (%s)" (exp_to_string abs) (exp_to_string arg)
-  | E_Add (a, b) -> Printf.sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
-  | E_Var id | E_ImpVar id -> Printf.sprintf "E_Var (%s)" id
+  | E_Abs { param; imps; body } ->
+      let s = sprintf "E_Abs \\%s" (param_to_string param) in
+      let s' = match imps with [] -> s | _ -> sprintf "%s {%s}" s (imps_to_string imps) in
+      sprintf "%s -> (%s)" s' (exp_to_string body)
+  | E_App (abs, arg) -> sprintf "E_App (%s) (%s)" (exp_to_string abs) (exp_to_string arg)
+  | E_Add (a, b) -> sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
+  | E_Var id -> sprintf "E_Var (%s)" id
+  | E_ImpVar id -> sprintf "E_ImpVar (%s)" id
   | E_Unit -> "E_Unit"
-  | E_Num i -> Printf.sprintf "E_Num (%s)" (Int.to_string i)
+  | E_Num i -> sprintf "E_Num (%s)" (Int.to_string i)
   | E_LetDyn { imp; init; body } ->
-      Printf.sprintf "E_LetDyn %s = (%s) in (%s)" imp (exp_to_string init) (exp_to_string body)
+      sprintf "E_LetDyn %s = (%s) in (%s)" imp (exp_to_string init) (exp_to_string body)
 
 (* TODO: Rather than immediately raising errors, queue them into a list, and attempt recovery *)
 (* TODO: Use monadic bind ( "let*" ) or Stream construct to avoid the excessive use of ts' references! *)
@@ -73,13 +73,17 @@ and parse_decls (ts : token Seq.t) =
   (* We reverse the list of declarations so they appear in lexical order *)
   (List.rev decls, ts')
 
+and unroll_curried (params : param list) (imps : imp list) (body : exp) =
+  let _aux param (exp, imps) = (E_Abs { param; imps; body = exp }, []) in
+  fst (List.fold_right _aux params (body, imps))
+
 and parse_decl (ts : token Seq.t) =
   match uncons ts with
   | Some (TK_KW_Val, ts') ->
       let id, ts'' = parse_id ts' in
       let ts'' = consume TK_Equals ts'' in
       let v, ts'' = parse_exp ts'' in
-      (D_Val (id, v), ts'')
+      ({ name = id; exp = v; typ_opt = None }, ts'')
   | Some (TK_KW_Fun, ts') ->
       let id, ts'' = parse_id ts' in
       let params, ts'' = parse_params ts'' in
@@ -91,7 +95,8 @@ and parse_decl (ts : token Seq.t) =
         let typ, ts'' = parse_type ts'' in
         let ts'' = consume TK_Equals ts'' in
         let body, ts'' = parse_exp ts'' in
-        (D_Fun { name = id; params; ret_typ = typ; body; imps }, ts'')
+        let exp = unroll_curried params imps body in
+        ({ name = id; exp; typ_opt = Some typ }, ts'')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
   | _ -> raise (Failure "Invalid Syntax. Expected 'fun' or 'val' declaration")
 
@@ -264,6 +269,5 @@ and consume (t : token) (ts : token Seq.t) =
   match uncons ts with
   | Some (t', ts') ->
       if t' = t then ts'
-      else
-        raise (Failure (Printf.sprintf "Invalid Syntax. Expected '%s'" (Lexer.token_to_string t)))
+      else raise (Failure (sprintf "Invalid Syntax. Expected '%s'" (Lexer.token_to_string t)))
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")

@@ -27,7 +27,7 @@
 
 # "foo" will be typed as: int { ?x: int } -> int
 # it has an implicit parameter effective when applying the first and only argument
-fun foo (y: int) { ?x: int }: int = ?x + y
+fun foo (y: int) { ?x: int }: int { ?x: int } -> int = ?x + y
 
 # Consider the case for currying functions:
 #   The latent coeffects will be encoded in the last arrow.
@@ -36,7 +36,7 @@ fun foo (y: int) { ?x: int }: int = ?x + y
 #
 # "bar" will be typed as: int -> int { ?x: int } -> int
 #
-fun bar (y: int) (z: int) { ?x: int }: int = ?x + y + z
+fun bar (y: int) (z: int) { ?x: int }: int -> int { ?x: int } -> int= ?x + y + z
 
 # "new1" will be typed as int { ?x: int } -> int 
 val new1 = bar 420

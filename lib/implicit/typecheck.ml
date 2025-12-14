@@ -12,45 +12,40 @@ let rec prog_to_string (p : ET.prog) =
   decls_str ^ " ; " ^ exp_to_string exp
 
 and decl_to_string (d : ET.decl) =
-  match d with
-  | ET.D_Val (id, exp) -> Printf.sprintf "D_Val %s = (%s)" id (exp_to_string exp)
-  | ET.D_Fun { name; params; ret_typ; body; imps } ->
-      let s = Printf.sprintf "D_Fun %s %s" name (params_to_string params) in
-      let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
-      Printf.sprintf "%s: %s = (%s)" s' (typ_to_string ret_typ) (exp_to_string body)
+  sprintf "%s: %s = (%s)" d.name (typ_to_string (snd d.exp)) (exp_to_string d.exp)
 
 and typ_to_string (t : ET.typ) : string =
   match t with
   | ET.T_Int -> "T_Int"
   | ET.T_Unit -> "T_Unit"
   | ET.T_Func { from; to_; imps } ->
-      let s = Printf.sprintf "%s" (typ_to_string from) in
-      let s' = match imps with [] -> s | _ -> Printf.sprintf "%s {%s}" s (imps_to_string imps) in
-      Printf.sprintf "T_Func (%s -> %s)" s' (typ_to_string to_)
+      let s = sprintf "%s" (typ_to_string from) in
+      let s' = match imps with [] -> s | _ -> sprintf "%s {%s}" s (imps_to_string imps) in
+      sprintf "T_Func (%s -> %s)" s' (typ_to_string to_)
 
-and imp_to_string ((id, typ) : ET.imp) = Printf.sprintf "%s: %s" id (typ_to_string typ)
+and imp_to_string ((id, typ) : ET.imp) = sprintf "%s: %s" id (typ_to_string typ)
 
 and imps_to_string (ls : ET.imp list) =
   let strings = List.map imp_to_string ls in
   String.concat ", " strings
 
-and param_to_string ((id, typ) : ET.param) = Printf.sprintf "(%s: %s)" id (typ_to_string typ)
-
-and params_to_string (ps : ET.param list) =
-  let strings = List.map param_to_string ps in
-  String.concat " " strings
+and param_to_string ((id, typ) : ET.param) = sprintf "(%s: %s)" id (typ_to_string typ)
 
 and exp_to_string (e : ET.exp) =
   match e with
+  | ET.E_Abs { param; imps; body }, typ ->
+      let s = sprintf "E_Abs \\%s" (param_to_string param) in
+      let s' = match imps with [] -> s | _ -> sprintf "%s {%s}" s (imps_to_string imps) in
+      sprintf "%s -> %s: %s" s' (exp_to_string body) (typ_to_string typ)
   | ET.E_App (abs, arg), typ ->
-      Printf.sprintf "E_App (%s) (%s): %s" (exp_to_string abs) (exp_to_string arg)
-        (typ_to_string typ)
-  | ET.E_Add (a, b), _ -> Printf.sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
-  | ET.E_Var id, typ | ET.E_ImpVar id, typ -> Printf.sprintf "E_Var (%s): %s" id (typ_to_string typ)
+      sprintf "E_App (%s) (%s): %s" (exp_to_string abs) (exp_to_string arg) (typ_to_string typ)
+  | ET.E_Add (a, b), _ -> sprintf "E_Add (%s) (%s)" (exp_to_string a) (exp_to_string b)
+  | ET.E_Var id, typ -> sprintf "E_Var (%s): %s" id (typ_to_string typ)
+  | ET.E_ImpVar id, typ -> sprintf "E_ImpVar (%s): %s" id (typ_to_string typ)
   | ET.E_Unit, _ -> "T_Unit"
-  | ET.E_Num i, _ -> Printf.sprintf "E_Num (%s)" (Int.to_string i)
+  | ET.E_Num i, _ -> sprintf "E_Num (%s)" (Int.to_string i)
   | ET.E_LetDyn { imp; init; body }, typ ->
-      Printf.sprintf "E_LetDyn %s = (%s) in (%s): %s" imp (exp_to_string init) (exp_to_string body)
+      sprintf "E_LetDyn %s = (%s) in (%s): %s" imp (exp_to_string init) (exp_to_string body)
         (typ_to_string typ)
 
 let rec type_check (p : Ast.prog) : ET.prog =
@@ -62,6 +57,24 @@ let rec type_check (p : Ast.prog) : ET.prog =
 
 and type_check_exp (ctx : Context.t) (e : Ast.exp) : ET.exp =
   match e with
+  | Ast.E_Abs { param; imps; body } ->
+      (* This is the ABS rule from the notes *)
+      (* Current context should be r and s is provided by 'imps' *)
+      (* let params', imps', ret_typ', typ =
+        type_check_params_imps_and_ret_typ ctx params ~imps ret_typ
+      in *)
+      let ((_, param_typ) as param') = type_check_param ctx param in
+      let imps' = type_check_imps ctx imps in
+      let () = add_var ctx param' in
+      let () = add_imps ctx imps' in
+      let ((_, body_typ) as body') = type_check_exp ctx body in
+      (* NOTE: Our body expression may have used any of these implicit parameters.
+               But these will be latent requirements, we don't need them to create
+               this function declaration, so remove them as well *)
+      let () = remove_imps ctx (List.map fst imps') in
+      let () = remove_var ctx (fst param') in
+      ( E_Abs { param = param'; imps = imps'; body = body' },
+        T_Func { from = param_typ; to_ = body_typ; imps = imps' } )
   | Ast.E_App (func, arg) -> (
       (* This is the APP rule from the notes *)
       (* Current context should be "r U t" *)
@@ -134,45 +147,15 @@ and type_check_param (ctx : Context.t) ((id, typ) : Ast.param) =
   let typ' = type_check_typ ctx typ in
   (id, typ')
 
-and type_check_params_imps_and_ret_typ (ctx : Context.t) (params : Ast.param list)
-    ?(imps : Ast.imp list = []) (ret_typ : Ast.typ) =
-  let ret_typ' = type_check_typ ctx ret_typ in
-  let imps' = type_check_imps ctx imps in
-  let _aux param (typ, params', imps) =
-    let ((_, param_typ) as param') = type_check_param ctx param in
-    let typ' = ET.T_Func { from = param_typ; to_ = typ; imps } in
-    (typ', param' :: params', [])
-  in
-  let typ', params', _ = List.fold_right _aux params (ret_typ', [], imps') in
-  (params', imps', ret_typ', typ')
-
 and type_check_decl (ctx : Context.t) (d : Ast.decl) : ET.decl =
-  match d with
-  | Ast.D_Val (id, exp) ->
-      let ((_, typ) as exp') = type_check_exp ctx exp in
-      let () = add_var ctx (id, typ) in
-      ET.D_Val (id, exp')
-  | Ast.D_Fun { name; params; imps; ret_typ; body } ->
-      (* This is the ABS rule from the notes *)
-      (* It is worth noting that we know at this point our implicit params
-         cannot yet be defined lexically (they will always be dynamically bound). 
-         This is quirk of the syntax surrounding function declarations. We will
-         still treat this as a typical lambda abstraction *)
-      let params', imps', ret_typ', typ =
-        type_check_params_imps_and_ret_typ ctx params ~imps ret_typ
-      in
-      let () = add_vars ctx params' in
-      let () = add_imps ctx imps' in
-      let ((_, body_typ) as body') = type_check_exp ctx body in
-      (* NOTE: Our body expression may have used any of these implicit parameters.
-               But these will be latent requirements, we don't need them to create
-               this function declaration, so remove them as well *)
-      let () = remove_imps ctx (List.map fst imps') in
-      let () = remove_vars ctx (List.map fst params) in
-      let () = assert_subtype body_typ ret_typ' in
-      let () = add_var ctx (name, typ) in
-
-      ET.D_Fun { name; params = params'; imps = imps'; ret_typ = ret_typ'; body = body' }
+  let ((_, exp_typ) as exp') = type_check_exp ctx d.exp in
+  let () = add_var ctx (d.name, exp_typ) in
+  match d.typ_opt with
+  | None -> { name = d.name; exp = exp' }
+  | Some t ->
+      let typ' = type_check_typ ctx t in
+      let () = assert_subtype exp_typ typ' in
+      { name = d.name; exp = exp' }
 
 and assert_imps (ctx : Context.t) (imps : ET.imp list) =
   if for_all (fun (i, _) -> is_some (Context.get_imp ctx i)) imps then ()
