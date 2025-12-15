@@ -1,3 +1,7 @@
+# Tokens
+var = [a-zA-Z][a-zA-Z0-9]*
+num = [0-9]+
+
 # Using extended BNF notation
 # The following is the CFG for the lambda calculus
 

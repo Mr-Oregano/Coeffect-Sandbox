@@ -1,43 +1,10 @@
 
-# An interesting thing about the type system for implicit parameters is the circular 
-# relationship between the ABS rule and the PARAM rule:
-# 
-#   (ABS)      Γ,x:t1 @ r ^ s ⊢ e:t2
-#         ------------------------------
-#         Γ @ r ⊢ λx:t1.e : t1 -{s}-> t2
-# 
-#   (PARAM)   
-#         ------------------------------
-#         Γ @ { ?param: t } ⊢ ?param : t
-# 
-# Namely, the PARAM rule requires the flat context to contain "?param" typed as "t"
-# and the ABS rule needs to know what "s" is (the latent implicit params). In essence,
-# it needs to typecheck "e" to get "s" (since this is where the implicit params are used), 
-# but it needs "s" to typecheck "e".
-# 
-# To circumvent this without requiring additional context from the syntax, we use
-# a constraint-based typechecker, which tracks constraints for the coeffects rather
-# than concrete instantiations.
-# 
-# In this sandbox however, we require the programmer to explicitly provide "s" for
-# lambda abstractions using "{ ... }" after the parameter list. These will be the
-# latent implicit parameters annotated in the type of the function. This also allows
-# for some interesting scenarios where the programmer can explicitly state when they
-# want to require the latent coeffect (for nested functions).
-
 # "foo" will be typed as: int { ?x: int } -> int
-# it has an implicit parameter effective when applying the first and only argument
 fun foo (y: int) { ?x: int }
    : int { ?x: int } -> int 
    = ?x + y
 
-# Consider the case for currying functions:
-#   The latent coeffects will be encoded in the last arrow.
-#   Because of this implicit parameter bindings are always
-#   written after the parameter list of of curried function declarations
-#
 # "bar" will be typed as: int -> int { ?x: int } -> int
-#
 fun bar (y: int) (z: int) { ?x: int }
    : int -> int { ?x: int } -> int 
    = ?x + y + z
@@ -47,13 +14,7 @@ val new1
    : int { ?x: int } -> int
    = bar 420
 
-# Consider the case for nested functions:
-#   This is more or less the same as the previous case. But this time, 
-#   the programmer can force the latent coeffect to occur earlier in the 
-#   function type. The inner function will bind the param ?x lexically
-#
 # "baz" will be typed as: int { ?x: int } -> int -> int
-# 
 fun baz (y: int) {?x: int}
    : int { ?x: int } -> int -> int
    = \(z: int) -> ?x + y + z
@@ -77,51 +38,12 @@ val new3
    : int { ?x: int } -> int
    = letdyn ?x = 1 in bam 1
 
-# What if we have higher-order functions parameterized on callbacks with implicit parameter
-# requirements, but the actual callback arguments don't use the implicit parameter
-#
-# "wrap" will be typed as: (int { ?x: int } -> int) -> int -> int
-#        but we should be able to provide something of type int -> int for the
-#        first argument (it's ok to require the implicit parameter for a function
-#        that doesn't use it)
-# 
-# TODO: Subcoeffecting not implemented yet
-# 
-# fun wrap (f: int { ?x: int } -> int)
-#   = letdyn ?x = 6 in (\x -> f x)
-# 
-# "plus_one" should be typed as: int -> int
-# 
-# let plus_one = wrap (\x -> x + 1)
-
-# An interesting consideration for the previous could be a map function that expects
-# a mapping callback with a latent implicit parameter acting as an index.
-#
-# However, the user should not be forced to use an implicit parameter in their 
-# mapping callback if they do not wish to do so.
-#
-# We have sub-typing rules for coeffects that allow us to relax the type system.
-# An expression requiring no implicit parameter is a subtype of an expression 
-# requiring 1 or more implicit parameters.
-#
-# fun map (f: int { ?idx: int } -> int) (l: int list) = 
-#     let _aux = \(i: int) (l: int list) ->
-#         match l with
-#         | Nil -> Nil
-#         | Cons (x, xs) -> 
-#             let x' = (letdyn ?idx = i in f x) in
-#             Cons (x', _aux (i + 1) xs)
-# 
-#     _aux 0 l            
-#
-# val res = (letdyn ?x = 6 in map (baz 7) [1, 2, 3, 4, 5])
-
 ;
 
-# letdyn ?x = 6 in foo 7
-# letdyn ?x = 6 in new1 7
-# new2 1
-letdyn ?x = 0 in new3 1 
+# letdyn ?x = 69 in foo 420 # Outputs: 489
+# letdyn ?x = 69 in new1 420 # Outputs: 909
+# new2 1 # Outputs: 3
+# letdyn ?x = 0 in new3 1 # Outputs: 3
 # new3 1 # Type error: implicit not bound!
 # foo 7 # Type error: implicit not bound!
 # new1 7 # Type error: implicit not bound!

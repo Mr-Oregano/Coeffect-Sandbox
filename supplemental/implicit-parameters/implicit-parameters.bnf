@@ -1,3 +1,9 @@
+# Tokens
+id = [a-zA-Z][a-zA-Z0-9]*
+int = [0-9]+
+imp_id = ?id
+unit = "()"
+
 # Using extended BNF notation
 # The following is the CFG for the implicit parameters coeffect system
 
