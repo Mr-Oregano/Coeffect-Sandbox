@@ -40,7 +40,7 @@ val new3
 
 ;
 
-# letdyn ?x = 69 in foo 420 # Outputs: 489
+letdyn ?x = 69 in foo 420 # Outputs: 489
 # letdyn ?x = 69 in new1 420 # Outputs: 909
 # new2 1 # Outputs: 3
 # letdyn ?x = 0 in new3 1 # Outputs: 3
