@@ -74,10 +74,12 @@ and eval_exp (env : Env.t) (e : ET.exp) =
   | ET.E_Num n, _ -> V_Num n
   | ET.E_LetDyn { imp; init; body }, _ ->
       (* This is the LetDyn semantics from the notes *)
-      (* LetDyn binds a new instance of this implicit parameter (fully replacing any existing entry) *)
-      let v = eval_exp env init in
-      let () = add_imp env (imp, v) in
-      eval_exp env body
+      (* LetDyn binds a new instance of this implicit parameter (shadowing any existing entry) *)
+      let init = eval_exp env init in
+      let () = add_imp_shadow env (imp, init) in
+      let res = eval_exp env body in
+      let () = remove_imp env imp in
+      res
 
 and extract_num (v : value) =
   match v with

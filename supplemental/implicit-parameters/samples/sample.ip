@@ -27,7 +27,9 @@
 
 # "foo" will be typed as: int { ?x: int } -> int
 # it has an implicit parameter effective when applying the first and only argument
-fun foo (y: int) { ?x: int }: int { ?x: int } -> int = ?x + y
+fun foo (y: int) { ?x: int }
+   : int { ?x: int } -> int 
+   = ?x + y
 
 # Consider the case for currying functions:
 #   The latent coeffects will be encoded in the last arrow.
@@ -36,42 +38,61 @@ fun foo (y: int) { ?x: int }: int { ?x: int } -> int = ?x + y
 #
 # "bar" will be typed as: int -> int { ?x: int } -> int
 #
-fun bar (y: int) (z: int) { ?x: int }: int -> int { ?x: int } -> int= ?x + y + z
+fun bar (y: int) (z: int) { ?x: int }
+   : int -> int { ?x: int } -> int 
+   = ?x + y + z
 
 # "new1" will be typed as int { ?x: int } -> int 
-val new1 = bar 420
+val new1 
+   : int { ?x: int } -> int
+   = bar 420
 
 # Consider the case for nested functions:
-#   This is more or less the same as the previous case. 
-#   But this time, the programmer can force the latent coeffect to occur
-#   earlier in the function type
-#
-# TODO: No lambdas yet...
+#   This is more or less the same as the previous case. But this time, 
+#   the programmer can force the latent coeffect to occur earlier in the 
+#   function type. The inner function will bind the param ?x lexically
 #
 # "baz" will be typed as: int { ?x: int } -> int -> int
 # 
-# fun baz (y: int) {?x: int} =
-#    \(z: int) -> ?x + y + z
+fun baz (y: int) {?x: int}
+   : int { ?x: int } -> int -> int
+   = \(z: int) -> ?x + y + z
 
 # "new2" will be typed as: int -> int
-# val new2 = letdyn ?x = 69 in bar 420
+val new2 
+   : int -> int
+   = letdyn ?x = 1 in baz 1
 
 # Consider the case for when we want full dynamic binding:
 #   Here the latent coeffect applies for every nested call
 #
-# "bum" can be typed as: int { ?x: int } -> int { ?x: int } -> int
+# "bam" will be typed as: int { ?x: int } -> int { ?x: int } -> int
 # 
-# TODO: No way to get this typing yet, can't rebind same name... 
-# 
-# fun bum (y: int) {?x: int} = 
-#   let x = ?x in \(z: int) { ?x: int } -> x + ?x + y + z
+fun bam (y: int) { ?x: int }
+   : int { ?x: int } -> int { ?x: int } -> int
+   = (\(x: int) -> \(z: int) { ?x: int } -> x + ?x + y + z) ?x
 
-# What if we don't use an implicit binding in higher-order functions?
+# "new3" will be typed as: int { ?x: int } -> int
+val new3
+   : int { ?x: int } -> int
+   = letdyn ?x = 1 in bam 1
+
+# What if we have higher-order functions parameterized on callbacks with implicit parameter
+# requirements, but the actual callback arguments don't use the implicit parameter
 #
-# "ign" should be typed as: (int { ?x: int } -> int) -> (int -> int)
-#
-# fun ign (f: int { ?x: int } -> int): int -> int
+# "wrap" will be typed as: (int { ?x: int } -> int) -> int -> int
+#        but we should be able to provide something of type int -> int for the
+#        first argument (it's ok to require the implicit parameter for a function
+#        that doesn't use it)
+# 
+# TODO: Subcoeffecting not implemented yet
+# 
+# fun wrap (f: int { ?x: int } -> int)
 #   = letdyn ?x = 6 in (\x -> f x)
+# 
+# "plus_one" should be typed as: int -> int
+# 
+# let plus_one = wrap (\x -> x + 1)
 
 # An interesting consideration for the previous could be a map function that expects
 # a mapping callback with a latent implicit parameter acting as an index.
@@ -82,8 +103,6 @@ val new1 = bar 420
 # We have sub-typing rules for coeffects that allow us to relax the type system.
 # An expression requiring no implicit parameter is a subtype of an expression 
 # requiring 1 or more implicit parameters.
-# 
-# TODO: Subcoeffecting not implemented yet
 #
 # fun map (f: int { ?idx: int } -> int) (l: int list) = 
 #     let _aux = \(i: int) (l: int list) ->
@@ -99,7 +118,10 @@ val new1 = bar 420
 
 ;
 
-letdyn ?x = 6 in foo 7
+# letdyn ?x = 6 in foo 7
 # letdyn ?x = 6 in new1 7
+# new2 1
+letdyn ?x = 0 in new3 1 
+# new3 1 # Type error: implicit not bound!
 # foo 7 # Type error: implicit not bound!
 # new1 7 # Type error: implicit not bound!

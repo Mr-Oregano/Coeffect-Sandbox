@@ -7,10 +7,10 @@
 <decl> ::= <fun_decl>
          | <val_decl> .
 
-<fun_decl> ::= 'fun' id <param>+ <imps>? ':' <type> '=' <expr> .
+<fun_decl> ::= 'fun' id <param>+ <imps>? (':' <type>)? '=' <expr> .
 <param> ::= '(' id ':' <type> ')'
 
-<val_decl> ::= 'val' id '=' <expr> .
+<val_decl> ::= 'val' id (':' <type>)? '=' <expr> .
 
 # Implicit Parameters
 <imps> ::= '{' <imps_inner> '}' .
@@ -25,10 +25,11 @@
               | '(' <type> ')' .
 
 # Expressions  
-<expr> ::= <letdyn> 
-         | <add> .
+<expr> ::= <abs> .
 
-<letdyn> ::= 'letdyn' imp_id '=' <expr> 'in' <expr> .
+<abs> ::= '\\' <param> <imps>? '->' <abs> | <letdyn> .
+
+<letdyn> ::= 'letdyn' imp_id '=' <add> 'in' <add> | <add> .
 
 <add> ::= <app> ( '+' <app> )* .
 

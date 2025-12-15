@@ -32,9 +32,33 @@ let test_parser_inputs_application =
     (([], E_App (E_App (E_Var "f", E_App (E_Var "x", E_Var "y")), E_Var "z")), "; f (x y) z");
   ]
 
+let test_parser_inputs_abstraction =
+  [
+    (([], E_Abs { param = ("x", T_Int); imps = []; body = E_Var "x" }), "; \\(x: int) -> x");
+    ( ( [],
+        E_Abs
+          {
+            param = ("x", T_Int);
+            imps = [];
+            body = E_Abs { param = ("y", T_Int); imps = []; body = E_Add (E_Var "x", E_Var "y") };
+          } ),
+      "; \\(x: int) -> \\(y: int) -> x + y" );
+    ( ( [],
+        E_Add
+          ( E_Abs
+              {
+                param = ("x", T_Int);
+                imps = [];
+                body = E_Abs { param = ("y", T_Int); imps = []; body = E_Var "x" };
+              },
+            E_Var "y" ) ),
+      "; (\\(x: int) -> \\(y: int) -> x) + y" );
+  ]
+
 let test_parser_inputs_val_decls =
   [
-    (([ { name = "x"; exp = E_Num 9; typ_opt = None } ], E_Var "x"), "val x = 9 ; x");
+    (([ { name = "x"; exp = E_Num 9; typ_opt = None } ], E_Unit), "val x = 9 ; ()");
+    (([ { name = "x"; exp = E_Num 9; typ_opt = Some T_Int } ], E_Unit), "val x: int = 9 ; ()");
     ( ( [
           { name = "x"; exp = E_Num 6; typ_opt = None };
           { name = "y"; exp = E_Num 9; typ_opt = None };
@@ -49,11 +73,35 @@ let test_parser_inputs_fun_decls =
           {
             name = "f";
             exp = E_Abs { param = ("x", T_Int); imps = []; body = E_Var "x" };
-            typ_opt = Some T_Int;
+            typ_opt = None;
           };
         ],
         E_App (E_Var "f", E_Num 9) ),
-      "fun f (x: int): int = x ; f 9" );
+      "fun f (x: int) = x ; f 9" );
+    ( ( [
+          {
+            name = "f";
+            exp = E_Abs { param = ("x", T_Int); imps = []; body = E_Var "x" };
+            typ_opt = Some (T_Func { from = T_Int; to_ = T_Int; imps = [] });
+          };
+        ],
+        E_App (E_Var "f", E_Num 9) ),
+      "fun f (x: int): int -> int = x ; f 9" );
+    ( ( [
+          {
+            name = "f";
+            exp =
+              E_Abs
+                {
+                  param = ("x", T_Int);
+                  imps = [ ("?y", T_Int) ];
+                  body = E_Add (E_Var "x", E_ImpVar "?y");
+                };
+            typ_opt = Some (T_Func { from = T_Int; to_ = T_Int; imps = [ ("?y", T_Int) ] });
+          };
+        ],
+        E_Unit ),
+      "fun f (x: int) { ?y: int }: int { ?y: int } -> int = x + ?y ; ()" );
   ]
 
 let test_parser_inputs_add =
@@ -190,13 +238,12 @@ let test_parser_inputs_fail =
   [
     ( "Invalid Syntax. Expected a named binding",
       "fun { ?y: int } (x: int) { ?z: int }: int = x ; f 9" );
-    ("Invalid Syntax. Expected ':'", "fun f(x: int) { ?y: int } { ?z: int }: int = x ; f 9");
-    ("Invalid Syntax. Expected ':'", "fun f(x: int) { ?y: int } (z: int): int = x ; f 9");
+    ("Invalid Syntax. Expected '='", "fun f(x: int) { ?y: int } { ?z: int }: int = x ; f 9");
+    ("Invalid Syntax. Expected '='", "fun f(x: int) { ?y: int } (z: int): int = x ; f 9");
     ( "Invalid Syntax. Expected implicit parameter binding",
       "fun f(x: int) { ?y: int, }: int = x ; f 9" );
     ("Invalid Syntax. Expected a named binding", "fun (x: int): int = x ; f 9");
     ("Invalid Syntax. Requires at least one parameter", "fun f x: int = x ; f 9");
-    ("Invalid Syntax. Expected ':'", "fun f (x: int) = x ; f 9");
     ("Invalid Syntax. Expected int, unit or arrow type", "fun f (x: int): blah = x ; f 9");
     ("Invalid Syntax. Requires at least one parameter", "fun f = x ; f 9");
     ("Invalid Syntax. Expected atomic expression", " ; 9 +");
@@ -221,6 +268,7 @@ let test_parse_fail (msg, inputs) =
 let suite =
   List.map test_parse_ast test_parser_inputs_simple
   @ List.map test_parse_ast test_parser_inputs_application
+  @ List.map test_parse_ast test_parser_inputs_abstraction
   @ List.map test_parse_ast test_parser_inputs_val_decls
   @ List.map test_parse_ast test_parser_inputs_fun_decls
   @ List.map test_parse_ast test_parser_inputs_add

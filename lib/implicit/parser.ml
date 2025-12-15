@@ -81,9 +81,10 @@ and parse_decl (ts : token Seq.t) =
   match uncons ts with
   | Some (TK_KW_Val, ts') ->
       let id, ts'' = parse_id ts' in
+      let typ, ts'' = parse_typ_constraint_opt ts'' in
       let ts'' = consume TK_Equals ts'' in
       let v, ts'' = parse_exp ts'' in
-      ({ name = id; exp = v; typ_opt = None }, ts'')
+      ({ name = id; exp = v; typ_opt = typ }, ts'')
   | Some (TK_KW_Fun, ts') ->
       let id, ts'' = parse_id ts' in
       let params, ts'' = parse_params ts'' in
@@ -91,14 +92,21 @@ and parse_decl (ts : token Seq.t) =
       else
         let imps_opt, ts'' = parse_imps_opt ts'' in
         let imps = Option.value imps_opt ~default:[] in
-        let ts'' = consume TK_Colon ts'' in
-        let typ, ts'' = parse_type ts'' in
+        let typ, ts'' = parse_typ_constraint_opt ts'' in
         let ts'' = consume TK_Equals ts'' in
         let body, ts'' = parse_exp ts'' in
         let exp = unroll_curried params imps body in
-        ({ name = id; exp; typ_opt = Some typ }, ts'')
+        ({ name = id; exp; typ_opt = typ }, ts'')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
   | _ -> raise (Failure "Invalid Syntax. Expected 'fun' or 'val' declaration")
+
+and parse_typ_constraint_opt (ts : token Seq.t) =
+  match uncons ts with
+  | Some (TK_Colon, ts') ->
+      let typ, ts'' = parse_type ts' in
+      (Some typ, ts'')
+  | Some (t, ts') -> (None, append (singleton t) ts')
+  | None -> (None, empty)
 
 and parse_params (ts : token Seq.t) =
   let rec _aux params ts' =
@@ -184,20 +192,31 @@ and parse_base_type (ts : token Seq.t) =
   | Some _ -> raise (Failure "Invalid Syntax. Expected int, unit or arrow type")
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
 
-and parse_exp (ts : token Seq.t) =
+and parse_exp (ts : token Seq.t) = parse_abs ts
+
+and parse_abs (ts : token Seq.t) =
   match uncons ts with
-  | Some (TK_KW_LetDyn, ts') -> parse_letdyn (append (singleton TK_KW_LetDyn) ts')
-  | Some (t, ts') -> parse_add (append (singleton t) ts')
+  | Some (TK_Slash, ts') ->
+      let param, ts' = parse_param ts' in
+      let imps_opt, ts' = parse_imps_opt ts' in
+      let imps = Option.value imps_opt ~default:[] in
+      let ts' = consume TK_Arrow ts' in
+      let body, ts' = parse_abs ts' in
+      (E_Abs { param; imps; body }, ts')
+  | Some (t, ts') -> parse_letdyn (append (singleton t) ts')
   | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
 
 and parse_letdyn (ts : token Seq.t) =
-  let ts' = consume TK_KW_LetDyn ts in
-  let imp_id, ts' = parse_imp_id ts' in
-  let ts' = consume TK_Equals ts' in
-  let init, ts' = parse_exp ts' in
-  let ts' = consume TK_KW_In ts' in
-  let body, ts' = parse_exp ts' in
-  (E_LetDyn { imp = imp_id; init; body }, ts')
+  match uncons ts with
+  | Some (TK_KW_LetDyn, ts') ->
+      let imp_id, ts' = parse_imp_id ts' in
+      let ts' = consume TK_Equals ts' in
+      let init, ts' = parse_add ts' in
+      let ts' = consume TK_KW_In ts' in
+      let body, ts' = parse_add ts' in
+      (E_LetDyn { imp = imp_id; init; body }, ts')
+  | Some (t, ts') -> parse_add (append (singleton t) ts')
+  | None -> raise (Failure "Invalid Syntax. Reached EOF prematurely")
 
 and parse_add (ts : token Seq.t) =
   let app, ts' = parse_app ts in

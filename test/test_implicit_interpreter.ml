@@ -63,6 +63,39 @@ let test_interpret_inputs_imps =
       "fun f (x: int) (y: int) { ?z: int }: int -> int { ?z: int } -> int = x + y + ?z; f 1" );
   ]
 
+let test_interpret_inputs_misc =
+  [
+    (* Implicit variables are statically scoped first, then dynamically scoped *)
+    ( V_Num 3,
+      "fun baz (y: int) {?x: int}\n\
+      \   : int { ?x: int } -> int -> int\n\
+      \   = \\(z: int) -> ?x + y + z\n\n\
+       val new2 \n\
+      \   : int -> int\n\
+      \   = letdyn ?x = 1 in baz 1\n\
+       ;\n\
+       letdyn ?x = 0 in new2 1" );
+    ( V_Num 3,
+      "fun baz (y: int) {?x: int}\n\
+      \   : int { ?x: int } -> int -> int\n\
+      \   = \\(z: int) -> ?x + y + z\n\n\
+       val new2 \n\
+      \   : int -> int\n\
+      \   = letdyn ?x = 1 in baz 1\n\
+       ;\n\
+       new2 1" );
+    (* Programmer can request explicit dynamic scoping *)
+    ( V_Num 3,
+      "fun bam (y: int) { ?x: int }\n\
+      \   : int { ?x: int } -> int { ?x: int } -> int\n\
+      \   = (\\(x: int) -> \\(z: int) { ?x: int } -> x + ?x + y + z) ?x\n\n\
+       val new3\n\
+      \   : int { ?x: int } -> int\n\
+      \   = letdyn ?x = 1 in bam 1\n\
+       ;\n\
+       letdyn ?x = 0 in new3 1" );
+  ]
+
 let test_interpret_prog (expected, inputs) =
   let inputs_str = String.escaped inputs in
   let chars_seq = once (String.to_seq inputs) in
@@ -81,3 +114,4 @@ let suite =
   List.map test_interpret_prog test_interpret_inputs_simple
   @ List.map test_interpret_prog test_interpret_inputs_curry
   @ List.map test_interpret_prog test_interpret_inputs_imps
+  @ List.map test_interpret_prog test_interpret_inputs_misc

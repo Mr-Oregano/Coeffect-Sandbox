@@ -18,6 +18,15 @@ module Context = struct
     if find_opt ht id = None then ()
     else raise (Failure (Printf.sprintf "Already bound identifier '%s'" id))
 
+  (* TODO: Consider what it means to bind two or more implicit parameters with the same name
+           but different types. Do we use subtyping?*)
+  let assert_not_contains_or_same_typ ht id typ =
+    match find_opt ht id with
+    | None -> ()
+    | Some typ' ->
+        if typ = typ' then ()
+        else raise (Failure (Printf.sprintf "Already bound identifier '%s'" id))
+
   let add_var ctx (id, typ) =
     assert_not_contains ctx.vars id;
     replace ctx.vars id typ
@@ -25,8 +34,8 @@ module Context = struct
   let add_vars ctx ids = List.iter (add_var ctx) ids
 
   let add_imp ctx (id, typ) =
-    assert_not_contains ctx.imps id;
-    replace ctx.imps id typ
+    assert_not_contains_or_same_typ ctx.imps id typ;
+    add ctx.imps id typ
 
   let add_imps ctx ids = List.iter (add_imp ctx) ids
   let remove_var ctx name = remove ctx.vars name
